@@ -2,7 +2,7 @@
 // continuously presents frames cleared to a fixed, visually distinct color.
 // No shaders/meshes/textures — just proves the SDL3 -> CAMetalLayer ->
 // MTLDevice -> clear -> present pipeline works end to end on this machine.
-#include <PoseidonMTL/EngineMTL.hpp>
+#include <PoseidonMTL/EngineMTLBootstrap.hpp>
 
 #include <SDL3/SDL.h>
 

@@ -1,13 +1,15 @@
 add_library(PoseidonMTL STATIC
+    MetalCppImpl.cpp
+    EngineMTLBootstrap.cpp
+    EngineMTLBootstrap.hpp
     EngineMTL.cpp
     EngineMTL.hpp
+    GraphicsBackendMTL.cpp
 )
 
-target_include_directories(PoseidonMTL PUBLIC
-    ${CMAKE_SOURCE_DIR}/engine
-)
+target_link_libraries(PoseidonMTL PUBLIC Poseidon)
 
-target_include_directories(PoseidonMTL SYSTEM PRIVATE
+target_include_directories(PoseidonMTL SYSTEM PUBLIC
     ${CMAKE_SOURCE_DIR}/thirdparty/metal-cpp
 )
 

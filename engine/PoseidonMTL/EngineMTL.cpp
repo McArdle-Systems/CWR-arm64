@@ -1,155 +1,272 @@
 #include <PoseidonMTL/EngineMTL.hpp>
 
-// metal-cpp is header-only; the *_PRIVATE_IMPLEMENTATION macros must be
-// defined in exactly one translation unit across the whole binary to emit
-// the Objective-C bridging glue. This is that translation unit.
-#define NS_PRIVATE_IMPLEMENTATION
-#define CA_PRIVATE_IMPLEMENTATION
-#define MTL_PRIVATE_IMPLEMENTATION
-#include <Foundation/Foundation.hpp>
-#include <QuartzCore/QuartzCore.hpp>
-#include <Metal/Metal.hpp>
-
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_metal.h>
 
-#include <cstdio>
+#include <Poseidon/Core/Application.hpp>
+#include <Poseidon/Core/Config/EngineConfig.hpp>
+#include <Poseidon/Graphics/Shared/WindowPlacement.hpp>
+#include <Poseidon/Graphics/Dummy/TextBankDummy.hpp>
+#include <Poseidon/Foundation/Logging/Logging.hpp>
 
 namespace Poseidon
 {
 
-struct EngineMTLBootstrap::Impl
+EngineMTL::EngineMTL(int width, int height, bool windowed, int bpp)
 {
-    SDL_MetalView metalView = nullptr;
-    CA::MetalLayer* layer = nullptr;
-    MTL::Device* device = nullptr;
-    MTL::CommandQueue* commandQueue = nullptr;
-};
+    _w = width;
+    _h = height;
+    _windowed = windowed;
+    _windowedRestoreW = width;
+    _windowedRestoreH = height;
+    _pixelSize = bpp;
+    _refreshRate = 60;
 
-EngineMTLBootstrap::EngineMTLBootstrap() : _impl(new Impl()) {}
+    LOG_INFO(Graphics, "MTL: Initializing engine — bootstrap {}x{} {}bpp {}", _w, _h, _pixelSize,
+             _windowed ? "windowed" : "fullscreen");
 
-EngineMTLBootstrap::~EngineMTLBootstrap()
-{
-    Shutdown();
-    delete _impl;
+    CreateWindowAndDevice();
+
+    _textBank = new TextBankDummy();
 }
 
-bool EngineMTLBootstrap::Init(const char* title, int width, int height)
+void EngineMTL::CreateWindowAndDevice()
 {
-    if (!SDL_InitSubSystem(SDL_INIT_VIDEO))
+    if (!SDL_Init(SDL_INIT_VIDEO))
     {
-        std::fprintf(stderr, "EngineMTLBootstrap: SDL_InitSubSystem(VIDEO) failed: %s\n", SDL_GetError());
-        return false;
+        LOG_ERROR(Graphics, "MTL: SDL_Init failed: {}", SDL_GetError());
+        return;
     }
 
-    _window = SDL_CreateWindow(title, width, height, SDL_WINDOW_METAL | SDL_WINDOW_HIGH_PIXEL_DENSITY);
-    if (_window == nullptr)
+    // Resolve final placement the same way GL33 does — keeps the
+    // "borderless covers monitor" / windowed-vs-fullscreen rules in one
+    // shared resolver instead of duplicating them per backend.
+    auto& engineCfg = GApp->GetConfig().GetEngineConfig();
+    DisplayPlacementInput displayCfg;
+    displayCfg.displayMode = engineCfg.displayMode;
+    if (_windowed && displayCfg.displayMode != "windowed")
+        displayCfg.displayMode = "windowed";
+    if (!_windowed && displayCfg.displayMode == "windowed")
+        displayCfg.displayMode = "borderless";
+    displayCfg.width = _w;
+    displayCfg.height = _h;
+
+    int desktopW = 0, desktopH = 0, desktopRefresh = 0;
+    if (const SDL_DisplayMode* dm = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay()))
     {
-        std::fprintf(stderr, "EngineMTLBootstrap: SDL_CreateWindow failed: %s\n", SDL_GetError());
-        return false;
+        desktopW = dm->w;
+        desktopH = dm->h;
+        desktopRefresh = (int)(dm->refresh_rate + 0.5f);
+    }
+    const WindowPlacement placement = ResolveWindowPlacement(displayCfg, desktopW, desktopH, desktopRefresh);
+    _windowMode = placement.mode;
+
+    Uint32 flags = SDL_WINDOW_METAL | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+    switch (placement.mode)
+    {
+        case WindowMode::Fullscreen:
+        case WindowMode::Borderless:
+            flags |= SDL_WINDOW_BORDERLESS;
+            break;
+        case WindowMode::Windowed:
+            flags |= SDL_WINDOW_RESIZABLE;
+            break;
     }
 
-    _impl->metalView = SDL_Metal_CreateView(_window);
-    if (_impl->metalView == nullptr)
+    _sdlWindow = SDL_CreateWindow("Poseidon [Metal]", placement.width, placement.height, flags);
+    if (!_sdlWindow)
     {
-        std::fprintf(stderr, "EngineMTLBootstrap: SDL_Metal_CreateView failed: %s\n", SDL_GetError());
-        return false;
+        LOG_ERROR(Graphics, "MTL: SDL_CreateWindow failed: {}", SDL_GetError());
+        return;
     }
 
-    _impl->layer = static_cast<CA::MetalLayer*>(SDL_Metal_GetLayer(_impl->metalView));
-    if (_impl->layer == nullptr)
+    if (placement.mode == WindowMode::Borderless)
     {
-        std::fprintf(stderr, "EngineMTLBootstrap: SDL_Metal_GetLayer returned null\n");
-        return false;
+        SDL_SetWindowFullscreenMode(_sdlWindow, nullptr);
+        if (!SDL_SetWindowFullscreen(_sdlWindow, true))
+            LOG_WARN(Graphics, "MTL: SDL_SetWindowFullscreen(true) failed for borderless startup: {}", SDL_GetError());
+    }
+    else if (placement.posX != WindowPlacement::kCentered)
+    {
+        SDL_SetWindowPosition(_sdlWindow, placement.posX, placement.posY);
     }
 
-    _impl->device = MTL::CreateSystemDefaultDevice();
-    if (_impl->device == nullptr)
+    if (placement.refreshHz > 0)
+        _refreshRate = placement.refreshHz;
+
+    if (!_bootstrap.AttachToWindow(_sdlWindow))
     {
-        std::fprintf(stderr, "EngineMTLBootstrap: MTL::CreateSystemDefaultDevice() returned null\n");
-        return false;
+        LOG_ERROR(Graphics, "MTL: EngineMTLBootstrap::AttachToWindow failed");
+        return;
     }
 
-    _impl->layer->setDevice(_impl->device);
-    _impl->layer->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+    int cw = 0, ch = 0;
+    SDL_GetWindowSizeInPixels(_sdlWindow, &cw, &ch);
+    _w = cw;
+    _h = ch;
 
-    int pxWidth = 0, pxHeight = 0;
-    SDL_GetWindowSizeInPixels(_window, &pxWidth, &pxHeight);
-    _impl->layer->setDrawableSize(CGSizeMake(static_cast<CGFloat>(pxWidth), static_cast<CGFloat>(pxHeight)));
+    LOG_INFO(Graphics, "MTL: Metal device — {}", _bootstrap.GetRendererName().c_str());
+    LOG_INFO(Graphics, "MTL: surface resolved to {}x{} {}", _w, _h, _windowed ? "windowed" : "fullscreen");
 
-    _impl->commandQueue = _impl->device->newCommandQueue();
-    if (_impl->commandQueue == nullptr)
+    // Hook SDL events to the engine — same helper GL33 uses, input
+    // forwarding/focus/Alt+Enter logic is identical across backends.
+    _eventWindow.Attach(_sdlWindow, _w, _h);
+
+    LoadConfig();
+}
+
+EngineMTL::~EngineMTL()
+{
+    LOG_INFO(Graphics, "MTL: Destroying engine");
+    SaveConfig();
+
+    delete _textBank;
+    _textBank = nullptr;
+
+    _bootstrap.Shutdown(); // releases device/queue/layer; AttachToWindow means it does NOT own _sdlWindow
+
+    if (_sdlWindow)
     {
-        std::fprintf(stderr, "EngineMTLBootstrap: newCommandQueue() returned null\n");
-        return false;
+        SDL_DestroyWindow(_sdlWindow);
+        _sdlWindow = nullptr;
     }
+}
 
+void EngineMTL::Clear(bool /*clearZ*/, bool clear, PackedColor color)
+{
+    // Piece 1 has no draw calls between Clear() and NextFrame() yet, so
+    // clearing and presenting in one shot is equivalent to the "proper"
+    // split (begin pass here, end+present in NextFrame) and avoids holding
+    // an encoder open across member state for nothing. Revisit once real
+    // draws land (Piece 2).
+    _bootstrap.RenderClearAndPresent(color.R8() / 255.0f, color.G8() / 255.0f, color.B8() / 255.0f,
+                                     color.A8() / 255.0f, clear);
+}
+
+bool EngineMTL::SwitchRes(int w, int h, int bpp)
+{
+    _pixelSize = bpp;
+    if (_sdlWindow && _windowed)
+        SDL_SetWindowSize(_sdlWindow, w, h);
+
+    int cw = 0, ch = 0;
+    if (_sdlWindow)
+        SDL_GetWindowSizeInPixels(_sdlWindow, &cw, &ch);
+    _w = cw > 0 ? cw : w;
+    _h = ch > 0 ? ch : h;
+    _bootstrap.OnWindowResized(_w, _h);
     return true;
 }
 
-void EngineMTLBootstrap::RenderClearAndPresent(float r, float g, float b, float a)
+bool EngineMTL::SwitchRefreshRate(int refresh)
 {
-    if (_impl->layer == nullptr || _impl->commandQueue == nullptr)
-        return;
-
-    NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
-
-    CA::MetalDrawable* drawable = _impl->layer->nextDrawable();
-    if (drawable == nullptr)
-    {
-        pool->release();
-        return;
-    }
-
-    MTL::RenderPassDescriptor* passDesc = MTL::RenderPassDescriptor::alloc()->init();
-    MTL::RenderPassColorAttachmentDescriptor* colorAttachment = passDesc->colorAttachments()->object(0);
-    colorAttachment->setTexture(drawable->texture());
-    colorAttachment->setLoadAction(MTL::LoadActionClear);
-    colorAttachment->setStoreAction(MTL::StoreActionStore);
-    colorAttachment->setClearColor(MTL::ClearColor::Make(r, g, b, a));
-
-    MTL::CommandBuffer* cmdBuf = _impl->commandQueue->commandBuffer();
-    MTL::RenderCommandEncoder* encoder = cmdBuf->renderCommandEncoder(passDesc);
-    encoder->endEncoding();
-
-    cmdBuf->presentDrawable(drawable);
-    cmdBuf->commit();
-
-    passDesc->release();
-    pool->release();
+    if (refresh == 0)
+        return false;
+    _refreshRate = refresh;
+    return true;
 }
 
-void EngineMTLBootstrap::OnWindowResized(int width, int height)
+bool EngineMTL::SetWindowMode(WindowMode mode)
 {
-    if (_impl->layer == nullptr)
-        return;
-    _impl->layer->setDrawableSize(CGSizeMake(static_cast<CGFloat>(width), static_cast<CGFloat>(height)));
+    if (!_sdlWindow)
+        return false;
+
+    if (_windowed && mode != WindowMode::Windowed)
+        SDL_GetWindowSize(_sdlWindow, &_windowedRestoreW, &_windowedRestoreH);
+
+    _windowMode = mode;
+    SDL_SetWindowFullscreen(_sdlWindow, mode != WindowMode::Windowed);
+    SDL_SetWindowBordered(_sdlWindow, mode == WindowMode::Windowed);
+    _windowed = (mode == WindowMode::Windowed);
+
+    if (mode == WindowMode::Windowed && _windowedRestoreW > 0)
+        SDL_SetWindowSize(_sdlWindow, _windowedRestoreW, _windowedRestoreH);
+
+    int cw = 0, ch = 0;
+    SDL_GetWindowSizeInPixels(_sdlWindow, &cw, &ch);
+    _w = cw;
+    _h = ch;
+    _bootstrap.OnWindowResized(_w, _h);
+
+    OnFullscreenChanged(_windowed);
+    return true;
 }
 
-void EngineMTLBootstrap::Shutdown()
+RString EngineMTL::GetDebugName() const
 {
-    if (_impl->commandQueue != nullptr)
-    {
-        _impl->commandQueue->release();
-        _impl->commandQueue = nullptr;
-    }
-    if (_impl->device != nullptr)
-    {
-        _impl->device->release();
-        _impl->device = nullptr;
-    }
-    _impl->layer = nullptr; // owned by the SDL_MetalView, not us
+    return "Metal";
+}
 
-    if (_impl->metalView != nullptr)
+RString EngineMTL::GetRendererName() const
+{
+    std::string name = _bootstrap.GetRendererName();
+    return name.empty() ? "Metal" : name.c_str();
+}
+
+void EngineMTL::ListResolutions(FindArray<ResolutionInfo>& ret)
+{
+    ret.Clear();
+    if (_windowed)
+        return;
+
+    SDL_DisplayID display = _sdlWindow ? SDL_GetDisplayForWindow(_sdlWindow) : SDL_GetPrimaryDisplay();
+    if (!display)
+        return;
+
+    int count = 0;
+    SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(display, &count);
+    if (!modes)
+        return;
+
+    for (int i = 0; i < count; i++)
     {
-        SDL_Metal_DestroyView(_impl->metalView);
-        _impl->metalView = nullptr;
+        ResolutionInfo info;
+        info.w = modes[i]->w;
+        info.h = modes[i]->h;
+        info.bpp = SDL_BITSPERPIXEL(modes[i]->format);
+        ret.AddUnique(info);
     }
-    if (_window != nullptr)
+    SDL_free(modes);
+}
+
+void EngineMTL::ListRefreshRates(FindArray<int>& ret)
+{
+    ret.Clear();
+    if (_windowed)
     {
-        SDL_DestroyWindow(_window);
-        _window = nullptr;
+        ret.Add(0);
+        return;
     }
+
+    SDL_DisplayID display = _sdlWindow ? SDL_GetDisplayForWindow(_sdlWindow) : SDL_GetPrimaryDisplay();
+    if (!display)
+        return;
+
+    int count = 0;
+    SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(display, &count);
+    if (!modes)
+        return;
+
+    for (int i = 0; i < count; i++)
+    {
+        if (modes[i]->w == Width() && modes[i]->h == Height())
+            ret.AddUnique(static_cast<int>(modes[i]->refresh_rate));
+    }
+    SDL_free(modes);
+}
+
+AbstractTextBank* EngineMTL::TextBank()
+{
+    return _textBank;
+}
+
+bool EngineMTL::IsResizable() const
+{
+    return _sdlWindow && (SDL_GetWindowFlags(_sdlWindow) & SDL_WINDOW_RESIZABLE) != 0;
+}
+
+int EngineMTL::AFrameTime() const
+{
+    return 0; // matches GL33::FrameTime() (also stubbed to 0)
 }
 
 } // namespace Poseidon
