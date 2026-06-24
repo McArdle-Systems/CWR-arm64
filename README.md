@@ -1,4 +1,4 @@
-# Poseidon-ARM64 — a community fork
+# CWR-arm64 — a community fork
 
 > **This is a modified, unofficial community fork**, not the original program
 > and not affiliated with or endorsed by Bohemia Interactive. It makes the
