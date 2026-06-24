@@ -79,3 +79,6 @@ target/
 !docs/**/*.png
 !tests/missions/screenshot/**/*.bmp
 !tests/missions/screenshot/**/*.png
+
+# debug data
+debug-data/
