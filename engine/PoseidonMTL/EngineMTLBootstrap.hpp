@@ -61,6 +61,13 @@ struct ObjectConstantsMTL
     float ambient[4];
     float diffuse[4];
     float emissive[4];
+    // x = 1.0 if the bound texture's alpha channel is meaningful (Cutout/
+    // Blend per AlphaStats -- Texture::IsAlpha()), 0.0 if it's an ordinary
+    // opaque texture whose alpha channel may just be uninitialized/garbage
+    // (common for diffuse-only legacy textures). fsMesh uses this to decide
+    // whether to multiply texColor.a into the output alpha at all -- doing
+    // it unconditionally would make garbage-alpha opaque textures vanish.
+    float flags[4];
 };
 
 // Native Metal device/layer/queue wrapper (macOS / Apple Silicon). Used two

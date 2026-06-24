@@ -398,6 +398,10 @@ void EngineMTL::SetMaterial(const TLMaterial& mat, const LightList& /*lights*/, 
 void EngineMTL::PrepareTriangleTL(const MipInfo& mip, const render::LegacySpec& /*spec*/)
 {
     _tlCurrentTexture = mip.IsOK() ? GpuHandleOf(mip._texture) : 0;
+    // Runs after SetMaterial (Shape::Draw's PrepareTL call order), right
+    // before DrawSectionTL consumes _tlObject -- see fsMesh's useTexAlpha
+    // note for why this can't just always read texColor.a.
+    _tlObject.flags[0] = (mip.IsOK() && mip._texture && mip._texture->IsAlpha()) ? 1.0f : 0.0f;
 }
 
 // Ported from GL33's PrepareMeshTL/PrepareMeshTLImpl (EngineGL33_Mesh.cpp).

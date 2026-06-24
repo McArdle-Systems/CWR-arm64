@@ -108,6 +108,7 @@ struct ObjectConstants {
     float4 ambient;
     float4 diffuse;
     float4 emissive;
+    float4 flags; // x = 1.0 if texColor.a is meaningful (see ObjectConstantsMTL::flags)
 };
 
 static inline float4 mulRowVec4(float4 p, Mat4Rows m)
@@ -127,6 +128,7 @@ struct VSOutMesh {
     float2 uv;
     float4 color;
     float fogFactor;
+    float useTexAlpha; // see fsMesh -- obj.flags.x passed through from vsMesh
 };
 
 vertex VSOutMesh vsMesh(uint vid [[vertex_id]], const device VertexMesh* verts [[buffer(0)]],
@@ -159,23 +161,22 @@ vertex VSOutMesh vsMesh(uint vid [[vertex_id]], const device VertexMesh* verts [
     float fogFactor =
         frame.fogParams.z > 0.5 ? clamp((dist - frame.fogParams.x) * frame.fogParams.y, 0.0, 1.0) : 0.0;
 
-    // Material alpha (NOT texture alpha -- see fsMesh's texColor.a note
-    // below, a different and still-unsolved problem). obj.ambient.w carries
-    // TLMaterial::ambient's alpha through unmodified from EngineMTL::
-    // SetMaterial; for ordinary opaque materials (CreateMaterialNormal,
-    // TransLight.cpp:1413) that's always 1, but Shadow.cpp's shadow pass
-    // (Shadow.cpp:605) deliberately sets ambient/diffuse to
-    // Color(0,0,0,shadowFactor) expecting a translucent black blend.
-    // Hardcoding this to 1.0 (as before) silently turned every shadow draw
-    // fully opaque -- same blend factors (SourceAlpha/OneMinusSourceAlpha,
-    // already set on pipelineStateTL) just never got anything but 1 to
-    // blend with, so shadows painted flat black over whatever they
-    // overlapped instead of darkening it.
+    // Material alpha. obj.ambient.w carries TLMaterial::ambient's alpha
+    // through unmodified from EngineMTL::SetMaterial; for ordinary opaque
+    // materials (CreateMaterialNormal, TransLight.cpp:1413) that's always 1,
+    // but Shadow.cpp's shadow pass (Shadow.cpp:605) deliberately sets
+    // ambient/diffuse to Color(0,0,0,shadowFactor) expecting a translucent
+    // black blend. Hardcoding this to 1.0 (as before) silently turned every
+    // shadow draw fully opaque -- same blend factors (SourceAlpha/
+    // OneMinusSourceAlpha, already set on pipelineStateTL) just never got
+    // anything but 1 to blend with, so shadows painted flat black over
+    // whatever they overlapped instead of darkening it.
     VSOutMesh out;
     out.position = clipPos;
     out.uv = v.uv;
     out.color = float4(lit, obj.ambient.w);
     out.fogFactor = fogFactor;
+    out.useTexAlpha = obj.flags.x;
     return out;
 }
 
@@ -185,13 +186,19 @@ fragment float4 fsMesh(VSOutMesh in [[stage_in]], constant FrameConstants& frame
     float4 texColor = tex.sample(samp, in.uv);
     float3 litColor = texColor.rgb * in.color.rgb;
     float3 finalColor = mix(litColor, frame.fogColor.rgb, in.fogFactor);
-    // Material alpha (in.color.a, set by vsMesh above) -- NOT texColor.a.
+    // Final alpha = material alpha (in.color.a, set by vsMesh) times texture
+    // alpha -- but ONLY when in.useTexAlpha says the bound texture's alpha
+    // channel is meaningful (Cutout/Blend, see ObjectConstantsMTL::flags).
     // Diffuse-only legacy textures commonly leave the alpha channel at 0 (no
-    // real alpha data), which combined with the pipeline's blending state
-    // would composite as fully transparent (showing the black clear color
-    // through it) -- this was the actual cause of "still black" after the
-    // ambient/diffuse lighting fix, before material alpha was wired up.
-    return float4(finalColor, in.color.a);
+    // real alpha data) -- multiplying that in unconditionally would make
+    // every ordinary opaque texture vanish (this was the actual cause of
+    // "still black" after the ambient/diffuse lighting fix, before material
+    // alpha was wired up). Skipping the multiply for those keeps them fully
+    // opaque while still letting real cutout/blend textures (fences,
+    // leaves, glass) use their actual per-pixel alpha instead of a single
+    // flat material-alpha value painted across the whole section.
+    float texAlpha = mix(1.0, texColor.a, in.useTexAlpha);
+    return float4(finalColor, in.color.a * texAlpha);
 }
 )";
 } // namespace
