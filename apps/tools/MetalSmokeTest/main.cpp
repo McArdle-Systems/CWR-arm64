@@ -6,10 +6,27 @@
 
 #include <SDL3/SDL.h>
 
+#include <algorithm>
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
-int main(int, char**)
+int main(int argc, char** argv)
 {
+    bool checkMode = false;
+    int frames = 3;
+    for (int i = 1; i < argc; ++i)
+    {
+        if (std::strcmp(argv[i], "--check") == 0)
+        {
+            checkMode = true;
+        }
+        else if (std::strcmp(argv[i], "--frames") == 0 && i + 1 < argc)
+        {
+            frames = std::max(1, std::atoi(argv[++i]));
+        }
+    }
+
     Poseidon::EngineMTLBootstrap engine;
     if (!engine.Init("PoseidonMTL Smoke Test", 1280, 720))
     {
@@ -20,6 +37,7 @@ int main(int, char**)
     std::printf("Window open. Clearing to cornflower blue. Close the window or press Esc to quit.\n");
 
     bool running = true;
+    int rendered = 0;
     while (running)
     {
         SDL_Event event;
@@ -35,6 +53,8 @@ int main(int, char**)
 
         // Cornflower blue (100, 149, 237) in linear 0..1.
         engine.RenderClearAndPresent(100.0f / 255.0f, 149.0f / 255.0f, 237.0f / 255.0f, 1.0f);
+        if (checkMode && ++rendered >= frames)
+            running = false;
     }
 
     engine.Shutdown();

@@ -185,6 +185,7 @@ if(APPLE)
     # Milestone-0 native Metal backend scaffold — macOS/Apple Silicon only.
     # See engine/PoseidonMTL/EngineMTL.hpp for scope notes.
     add_subdirectory(engine/PoseidonMTL)
+    add_subdirectory(apps/tools/GL33SmokeTest)
     add_subdirectory(apps/tools/MetalSmokeTest)
 endif()
 add_subdirectory(tests/unit/engine/Poseidon/Foundation)
