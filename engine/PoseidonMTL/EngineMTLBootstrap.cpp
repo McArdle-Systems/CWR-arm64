@@ -28,16 +28,16 @@ namespace Poseidon
 namespace
 {
 // Manual vertex fetch by vertex_id (no MTLVertexDescriptor) -- the simplest
-// correct setup for a single fixed vertex layout. Vertex2D's MSL layout
-// (float2 + float2 + float4, natural alignment) matches Vertex2DMTL's C++
-// layout byte-for-byte: position@0, uv@8, color@16, size 32.
+// correct setup for a single fixed vertex layout. Vertex2D uses 16-byte lanes
+// so the MSL layout matches Vertex2DMTL's C++ layout byte-for-byte.
 const char* kShaderSource2D = R"(
 #include <metal_stdlib>
 using namespace metal;
 
 struct Vertex2D {
-    float2 position;
+    float4 position;
     float2 uv;
+    float2 pad;
     float4 color;
 };
 
@@ -51,7 +51,7 @@ vertex VSOut vs2d(uint vid [[vertex_id]], const device Vertex2D* verts [[buffer(
 {
     Vertex2D v = verts[vid];
     VSOut out;
-    out.position = float4(v.position, 0.0, 1.0);
+    out.position = v.position;
     out.uv = v.uv;
     out.color = v.color;
     return out;
@@ -1053,6 +1053,7 @@ bool EngineMTLBootstrap::BeginFrame(float r, float g, float b, float a, bool cle
 
 void EngineMTLBootstrap::DrawTriangles2D(const Vertex2DMTL* verts, int vertCount, const uint16_t* indices,
                                          int indexCount, int textureHandle, int clipX, int clipY, int clipW, int clipH,
+                                         bool useDepth,
                                          Poseidon::render::DepthMode depthMode, Poseidon::render::BlendMode blendMode,
                                          Poseidon::render::SamplerMode sampler, Poseidon::render::SurfaceMode surface,
                                          Poseidon::render::ShaderFamily shader)
@@ -1064,12 +1065,9 @@ void EngineMTLBootstrap::DrawTriangles2D(const Vertex2DMTL* verts, int vertCount
     // DrawSectionTL call earlier in this same encoder would otherwise leave
     // the mesh pipeline/depth-test state bound for this 2D draw.
     //
-    // Only BlendMode::Shadow/DepthMode::Shadow resolve to anything other than
-    // the default pipeline/depth state -- see this method's header doc
-    // comment. That single case is the legacy/2D fan-draw path's shadow
-    // polys (most real shadow casters take this path, not DrawSectionTL --
-    // see Shadow.cpp's Object::DrawShadow), using the same single-pass
-    // stencil-exclusion scheme as the TL path's fsShadow/depthStateShadow.
+    // Shadow polys use the single-pass stencil-exclusion scheme as the TL
+    // path. Non-shadow flat UI keeps depth disabled; legacy software-TL
+    // callers opt into the descriptor depth state through useDepth.
     const bool isShadow =
         blendMode == Poseidon::render::BlendMode::Shadow || depthMode == Poseidon::render::DepthMode::Shadow;
     MTL::RenderPipelineState* pipeline = _impl->pipelineState;
@@ -1078,7 +1076,17 @@ void EngineMTLBootstrap::DrawTriangles2D(const Vertex2DMTL* verts, int vertCount
     else if (blendMode == Poseidon::render::BlendMode::Additive && _impl->pipelineState2DAdditive != nullptr)
         pipeline = _impl->pipelineState2DAdditive;
     _impl->currentEncoder->setRenderPipelineState(pipeline);
-    _impl->currentEncoder->setDepthStencilState(isShadow ? _impl->depthStateShadow : _impl->depthStateDisabled);
+    MTL::DepthStencilState* depthState = _impl->depthStateDisabled;
+    if (isShadow)
+        depthState = _impl->depthStateShadow;
+    else if (useDepth)
+    {
+        if (depthMode == Poseidon::render::DepthMode::ReadOnly)
+            depthState = _impl->depthStateTLNoWrite;
+        else if (depthMode == Poseidon::render::DepthMode::Normal)
+            depthState = _impl->depthStateTL;
+    }
+    _impl->currentEncoder->setDepthStencilState(depthState);
     _impl->currentEncoder->setFragmentSamplerState(_impl->samplerStates[SamplerIndex(sampler)], 0);
     SetDepthBiasForDescriptor(_impl->currentEncoder, surface, isShadow ? Poseidon::render::ShaderFamily::Shadow
                                                                        : shader);

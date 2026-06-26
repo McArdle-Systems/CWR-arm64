@@ -15,8 +15,8 @@ namespace Poseidon
 // is straight (non-premultiplied) alpha, 0..1.
 struct Vertex2DMTL
 {
-    float x, y;
-    float u, v;
+    float x, y, z, w;
+    float u, v, pad0, pad1;
     float r, g, b, a;
 };
 
@@ -201,15 +201,10 @@ class EngineMTLBootstrap
     // enums `BuildRenderPassDescriptor` produces -- defaulted to this
     // pipeline's traditional always-on alpha blend with no real depth test,
     // so ordinary 2D/UI callers (Draw2D/DrawPoly/DrawLine) are unaffected.
-    // Only DepthMode::Shadow/BlendMode::Shadow currently resolve to anything
-    // other than the default pipelineState/depthStateDisabled pair -- see
-    // EngineMTLBootstrap.cpp's DrawTriangles2D body. Other modes fall back to
-    // the default rather than silently misrendering.
-    /// TODO: Normal/ReadOnly/Disabled DepthMode and Additive/AlphaBlend
-    /// BlendMode aren't independently resolved here yet -- this path only
-    /// distinguishes "ordinary 2D" from "shadow". Generalize if a caller
-    /// other than the legacy shadow fan-draw ever needs a real depth test or
-    /// additive blending through DrawTriangles2D.
+    // `useDepth` is false for ordinary flat UI/2D draws, whose spec flags are
+    // historically noisy and should not populate the depth buffer. The legacy
+    // software-TL path sets it true so screen-space 3D controls keep their
+    // original per-vertex depth ordering.
     //
     // `sampler` selects filter + wrap addressing, same SamplerMode
     // BuildRenderPassDescriptor produces -- defaults to Linear+ClampToEdge
@@ -220,6 +215,7 @@ class EngineMTLBootstrap
     // (tiled textures need wrap/repeat addressing, not clamp).
     void DrawTriangles2D(const Vertex2DMTL* verts, int vertCount, const uint16_t* indices, int indexCount,
                          int textureHandle, int clipX, int clipY, int clipW, int clipH,
+                         bool useDepth = false,
                          Poseidon::render::DepthMode depthMode = Poseidon::render::DepthMode::Disabled,
                          Poseidon::render::BlendMode blendMode = Poseidon::render::BlendMode::AlphaBlend,
                          Poseidon::render::SamplerMode sampler = {Poseidon::render::SamplerFilter::Linear, true, true},

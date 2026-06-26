@@ -247,7 +247,7 @@ class EngineMTL : public Engine
     {
         kMaxPolyVerts = 32
     };
-    void DrawFan2D(const float* xy, const float* uv, const PackedColor* colors, int n, int textureHandle,
+    void DrawFan2D(const float* xy, const float* z, const float* uv, const PackedColor* colors, int n, int textureHandle,
                    const Rect2DAbs& clip, render::DepthMode depthMode = render::DepthMode::Disabled,
                    render::BlendMode blendMode = render::BlendMode::AlphaBlend,
                    render::SamplerMode sampler = {render::SamplerFilter::Linear, true, true},
