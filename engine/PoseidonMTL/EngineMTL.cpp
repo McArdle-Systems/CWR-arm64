@@ -255,11 +255,13 @@ void EngineMTL::Draw2D(const Draw2DPars& pars, const Rect2DAbs& rect, const Rect
     };
     const PackedColor colors[4] = {pars.colorTL, pars.colorTR, pars.colorBR, pars.colorBL};
 
-    DrawFan2D(xy, uv, colors, 4, GpuHandleOf(pars.mip._texture), clip);
+    const render::RenderPassDescriptor d = render::BuildRenderPassDescriptor(render::SplitLegacy(pars.spec));
+    DrawFan2D(xy, uv, colors, 4, GpuHandleOf(pars.mip._texture), clip, d.depth, d.blend, d.sampler, d.surface,
+              d.shader);
 }
 
 void EngineMTL::DrawPoly(const MipInfo& mip, const Vertex2DAbs* vertices, int n, const Rect2DAbs& clip,
-                         int /*specFlags*/)
+                         int specFlags)
 {
     if (n < 3 || n > kMaxPolyVerts)
         return;
@@ -276,11 +278,13 @@ void EngineMTL::DrawPoly(const MipInfo& mip, const Vertex2DAbs* vertices, int n,
         colors[i] = vertices[i].color;
     }
 
-    DrawFan2D(xy, uv, colors, n, mip.IsOK() ? GpuHandleOf(mip._texture) : 0, clip);
+    const render::RenderPassDescriptor d = render::BuildRenderPassDescriptor(render::SplitLegacy(specFlags));
+    DrawFan2D(xy, uv, colors, n, mip.IsOK() ? GpuHandleOf(mip._texture) : 0, clip, d.depth, d.blend, d.sampler,
+              d.surface, d.shader);
 }
 
 void EngineMTL::DrawPoly(const MipInfo& mip, const Vertex2DPixel* vertices, int n, const Rect2DPixel& clip,
-                         int /*specFlags*/)
+                         int specFlags)
 {
     if (n < 3 || n > kMaxPolyVerts)
         return;
@@ -302,7 +306,9 @@ void EngineMTL::DrawPoly(const MipInfo& mip, const Vertex2DPixel* vertices, int 
 
     Rect2DAbs clipAbs;
     Convert(clipAbs, clip);
-    DrawFan2D(xy, uv, colors, n, mip.IsOK() ? GpuHandleOf(mip._texture) : 0, clipAbs);
+    const render::RenderPassDescriptor d = render::BuildRenderPassDescriptor(render::SplitLegacy(specFlags));
+    DrawFan2D(xy, uv, colors, n, mip.IsOK() ? GpuHandleOf(mip._texture) : 0, clipAbs, d.depth, d.blend, d.sampler,
+              d.surface, d.shader);
 }
 
 void EngineMTL::DrawDecal(Vector3Par screen, float /*rhw*/, float sizeX, float sizeY, PackedColor color,
