@@ -713,10 +713,23 @@ void EngineMTL::PrepareTriangleTL(const MipInfo& mip, const render::LegacySpec& 
         // alpha comes from vertex color rather than the bound texture, which
         // would otherwise silently render as a hard-edged opaque shape
         // instead of fading.
+        //
+        // But the legacy IsAlpha spec bit is set generically for "this
+        // material has alpha" and does NOT distinguish cutout from blend the
+        // way Metal's texture-measured isCutout does (that split is the M113
+        // transparency fix, b0e99f8) -- a hard-cutout texture (e.g. the jeep
+        // steering wheel's spoke holes) can still carry the IsAlpha spec bit.
+        // isCutout is the authoritative signal and must gate every blend-
+        // forcing reason below, not just one arm of the OR -- otherwise a
+        // future addition here can reintroduce this same class of bug.
+        // Cutout sections always keep fsMeshOpaque's alpha-test discard
+        // instead of being forced onto fsMeshBlend, which has no discard and
+        // instead blends the cutout edges' partial-alpha texels straight
+        // over the background -- visible as a fringe right at the corners.
         const bool forceBlend = d.blend == render::BlendMode::AlphaBlend &&
                                 (d.fog == render::FogMode::AlphaFog ||
                                  render::Has(spec.backend, render::Backend::IsAlpha));
-        const bool isBlend = forceBlend || (isAlpha && !isCutout);
+        const bool isBlend = !isCutout && (isAlpha || forceBlend);
         _tlSectionBlendMode = isBlend ? render::BlendMode::AlphaBlend : render::BlendMode::Opaque;
         // Match GL33/BuildRenderPassDescriptor: alpha/blend does not by
         // itself disable depth writes. Only NoZWrite/NoZBuf/shadow change

@@ -305,22 +305,22 @@ vertex VSOutMesh vsMesh(uint vid [[vertex_id]], const device VertexMesh* verts [
     return out;
 }
 
-static inline float4 applyDetailMode(float4 baseTex, float3 baseLit, VSOutMesh in, texture2d<float> detailTex,
-                                     sampler detailSamp)
+static inline float4 applyDetailMode(float4 baseTex, float3 diffuseLit, float3 specLit, VSOutMesh in,
+                                     texture2d<float> detailTex, sampler detailSamp)
 {
     if (in.detailMode > 1.5)
     {
         float4 grass = detailTex.sample(detailSamp, in.uv1);
-        float3 rgb = clamp(baseLit * grass.rgb * 2.0, 0.0, 1.0);
+        float3 rgb = clamp(diffuseLit * grass.rgb * 2.0, 0.0, 1.0);
         float a = baseTex.a * grass.a;
         return float4(rgb, a);
     }
     if (in.detailMode > 0.5)
     {
         float4 detail = detailTex.sample(detailSamp, in.uv1);
-        return float4(baseLit * (detail.a * 2.0), baseTex.a);
+        return float4(diffuseLit * (detail.a * 2.0) + specLit, baseTex.a);
     }
-    return float4(baseLit, baseTex.a);
+    return float4(diffuseLit + specLit, baseTex.a);
 }
 
 // Opaque-pipeline fragment shader (blending disabled at the pipeline level,
@@ -338,8 +338,8 @@ fragment float4 fsMeshOpaque(VSOutMesh in [[stage_in]], constant FrameConstants&
     float4 texColor = tex.sample(samp, in.uv);
     if (in.isCutout > 0.5 && texColor.a < (192.0 / 255.0))
         discard_fragment();
-    float3 litColor = texColor.rgb * in.color.rgb + in.specColor.rgb;
-    float4 detailed = applyDetailMode(texColor, litColor, in, detailTex, detailSamp);
+    float3 diffuseLit = texColor.rgb * in.color.rgb;
+    float4 detailed = applyDetailMode(texColor, diffuseLit, in.specColor.rgb, in, detailTex, detailSamp);
     float3 finalColor = mix(detailed.rgb, frame.fogColor.rgb, in.fogFactor);
     return float4(finalColor, in.color.a * detailed.a);
 }
@@ -353,8 +353,8 @@ fragment float4 fsMeshBlend(VSOutMesh in [[stage_in]], constant FrameConstants& 
                             sampler samp [[sampler(0)]], sampler detailSamp [[sampler(1)]])
 {
     float4 texColor = tex.sample(samp, in.uv);
-    float3 litColor = texColor.rgb * in.color.rgb + in.specColor.rgb;
-    float4 detailed = applyDetailMode(texColor, litColor, in, detailTex, detailSamp);
+    float3 diffuseLit = texColor.rgb * in.color.rgb;
+    float4 detailed = applyDetailMode(texColor, diffuseLit, in.specColor.rgb, in, detailTex, detailSamp);
     float3 finalColor = mix(detailed.rgb, frame.fogColor.rgb, in.fogFactor);
     return float4(finalColor, in.color.a * detailed.a);
 }
