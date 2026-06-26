@@ -731,11 +731,13 @@ void EngineMTL::DrawLine(int beg, int end)
         x0 - pdx * halfW, y0 - pdy * halfW, x1 - pdx * halfW, y1 - pdy * halfW,
         x1 + pdx * halfW, y1 + pdy * halfW, x0 + pdx * halfW, y0 + pdy * halfW,
     };
+    const float z[4] = {v0.pos.Z(), v1.pos.Z(), v1.pos.Z(), v0.pos.Z()};
+    const float rhw[4] = {v0.rhw, v1.rhw, v1.rhw, v0.rhw};
     const float uv[8] = {0, 0, 0, 0, 0, 0, 0, 0};
     const PackedColor colors[4] = {v0.color, v0.color, v1.color, v1.color};
 
     const Rect2DAbs fullScreen(0, 0, static_cast<float>(_w), static_cast<float>(_h));
-    DrawFan2D(xy, nullptr, nullptr, uv, colors, 4, 0, fullScreen);
+    DrawFan2D(xy, z, rhw, uv, colors, 4, 0, fullScreen);
 }
 
 bool EngineMTL::SwitchRes(int w, int h, int bpp)
