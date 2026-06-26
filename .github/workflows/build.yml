@@ -92,7 +92,8 @@ jobs:
             libxkbcommon-dev \
             libwayland-dev \
             libopenal-dev \
-            wayland-protocols
+            wayland-protocols \
+            unzip
 
       - name: Verify macOS dependencies
         if: runner.os == 'macOS'
