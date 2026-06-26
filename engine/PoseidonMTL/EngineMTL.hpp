@@ -95,12 +95,8 @@ class EngineMTL : public Engine
     void PrepareTriangle(const MipInfo& mip, int specFlags) override;
     void DrawPolygon(const VertexIndex* i, int n) override;
     void DrawSection(const FaceArray& face, Offset beg, Offset end) override;
-    void DrawDecal(Vector3Par /*pos*/, float /*rhw*/, float /*sizeX*/, float /*sizeY*/, PackedColor /*col*/,
-                   const MipInfo& /*mip*/, int /*specFlags*/) override
-    {
-        // Not hit by the sky/cloud/sun/moon path this milestone targets; add
-        // when something on the critical path needs it.
-    }
+    void DrawDecal(Vector3Par pos, float rhw, float sizeX, float sizeY, PackedColor col, const MipInfo& mip,
+                   int specFlags) override;
 
     void Draw2D(const Draw2DPars& pars, const Rect2DAbs& rect, const Rect2DAbs& clip = Rect2DClipAbs) override;
     void DrawPoly(const MipInfo& mip, const Vertex2DAbs* vertices, int nVertices,

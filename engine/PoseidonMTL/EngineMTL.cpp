@@ -305,6 +305,53 @@ void EngineMTL::DrawPoly(const MipInfo& mip, const Vertex2DPixel* vertices, int 
     DrawFan2D(xy, uv, colors, n, mip.IsOK() ? GpuHandleOf(mip._texture) : 0, clipAbs);
 }
 
+void EngineMTL::DrawDecal(Vector3Par screen, float /*rhw*/, float sizeX, float sizeY, PackedColor color,
+                          const MipInfo& mip, int specFlags)
+{
+    if (!mip.IsOK())
+        return;
+
+    float xBeg = screen.X() - sizeX;
+    float xEnd = screen.X() + sizeX;
+    float yBeg = screen.Y() - sizeY;
+    float yEnd = screen.Y() + sizeY;
+    float uBeg = 0.0f;
+    float vBeg = 0.0f;
+    float uEnd = 1.0f;
+    float vEnd = 1.0f;
+
+    if (xBeg < 0.0f)
+    {
+        uBeg = -xBeg / (2.0f * sizeX);
+        xBeg = 0.0f;
+    }
+    if (xEnd > static_cast<float>(_w))
+    {
+        uEnd = 1.0f - (xEnd - static_cast<float>(_w)) / (2.0f * sizeX);
+        xEnd = static_cast<float>(_w);
+    }
+    if (yBeg < 0.0f)
+    {
+        vBeg = -yBeg / (2.0f * sizeY);
+        yBeg = 0.0f;
+    }
+    if (yEnd > static_cast<float>(_h))
+    {
+        vEnd = 1.0f - (yEnd - static_cast<float>(_h)) / (2.0f * sizeY);
+        yEnd = static_cast<float>(_h);
+    }
+    if (xBeg >= xEnd || yBeg >= yEnd)
+        return;
+
+    const float xy[8] = {xBeg, yBeg, xEnd, yBeg, xEnd, yEnd, xBeg, yEnd};
+    const float uv[8] = {uBeg, vBeg, uEnd, vBeg, uEnd, vEnd, uBeg, vEnd};
+    const PackedColor colors[4] = {color, color, color, color};
+    const Rect2DAbs clip(0, 0, static_cast<float>(_w), static_cast<float>(_h));
+
+    const render::RenderPassDescriptor d = render::BuildRenderPassDescriptor(render::SplitLegacy(specFlags));
+    DrawFan2D(xy, uv, colors, 4, GpuHandleOf(mip._texture), clip, d.depth, d.blend, d.sampler, d.surface, d.shader);
+}
+
 void EngineMTL::DrawLine(const Line2DAbs& line, PackedColor c0, PackedColor c1, const Rect2DAbs& clip)
 {
     // Solid colored quad approximating the line -- GL33 samples a dedicated
@@ -529,11 +576,21 @@ void EngineMTL::PrepareTriangleTL(const MipInfo& mip, const render::LegacySpec& 
     }
     else
     {
-        const bool isBlend = isAlpha && !isCutout;
+        // IsAlphaFog is an explicit alpha-blended effect/material mode
+        // (cloudlets, bullet impacts, craters, HUD-ish fades). Do not let
+        // texture classification override it: some of these shapes are
+        // primarily vertex-colored, and GL33 routes the spec bit itself to
+        // AlphaBlend regardless of texture alpha stats.
+        const bool forceBlend = d.blend == render::BlendMode::AlphaBlend &&
+                                d.fog == render::FogMode::AlphaFog;
+        const bool isBlend = forceBlend || (isAlpha && !isCutout);
         _tlSectionBlendMode = isBlend ? render::BlendMode::AlphaBlend : render::BlendMode::Opaque;
-        _tlSectionDepthMode = (isBlend || render::Has(spec.backend, render::Backend::NoZWrite))
-                                  ? render::DepthMode::ReadOnly
-                                  : render::DepthMode::Normal;
+        // Match GL33/BuildRenderPassDescriptor: alpha/blend does not by
+        // itself disable depth writes. Only NoZWrite/NoZBuf/shadow change
+        // depth mode. Turning every Blend texture into ReadOnly makes
+        // layered alpha surfaces inside one object bleed through each other
+        // (e.g. jeep steering wheel vs windscreen).
+        _tlSectionDepthMode = d.depth;
     }
 }
 
