@@ -91,6 +91,7 @@ jobs:
             libxinerama-dev \
             libxkbcommon-dev \
             libwayland-dev \
+            libopenal-dev \
             wayland-protocols
 
       - name: Verify macOS dependencies
