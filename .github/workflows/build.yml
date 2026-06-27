@@ -80,6 +80,7 @@ jobs:
             automake \
             ca-certificates \
             clang \
+            clang-format \
             curl \
             libtool \
             make \
