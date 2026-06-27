@@ -61,17 +61,6 @@ struct FrameConstantsMTL
     float sunDirAndEnabled[4]; // xyz = direction, w = 1.0/0.0 enabled
     float fogParams[4];        // start, invRange, enabled, 0
     float fogColor[4];         // rgb, a=1
-    // Real (non-camera-relative) camera world position -- needed only for
-    // the specular view-direction term, mirrors GL33's separate camPos
-    // uniform (EngineGL33_Shaders.cpp VSConstants.camPos, c17). Every other
-    // field in this struct is deliberately camera-relative; this one isn't,
-    // ported as-is to match GL33's actual formula -- see vsMesh's specular
-    // comment for the apparent inconsistency this carries forward
-    // (GL33 computes viewDir from an absolute camPos against an already
-    // camera-relative worldPos, which looks dimensionally off, but this is
-    // GL33's shipped behavior and the port targets parity, not a unilateral
-    // fix).
-    float camPosWorld[4]; // xyz, w unused
 };
 
 // One local point/spot light, matching GL33's per-light VSConstants layout

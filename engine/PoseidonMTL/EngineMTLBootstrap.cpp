@@ -265,16 +265,23 @@ vertex VSOutMesh vsMesh(uint vid [[vertex_id]], const device VertexMesh* verts [
         frame.fogParams.z > 0.5 ? clamp((dist - frame.fogParams.x) * frame.fogParams.y, 0.0, 1.0) : 0.0;
 
     // Sun-only specular highlight (GL33 doesn't apply specular from local
-    // lights either). viewDir mixes an absolute camPos against an already
-    // camera-relative worldPos4 -- ported as-is from GL33's own formula
-    // (EngineGL33_Shaders.cpp), see FrameConstantsMTL::camPosWorld's doc
-    // comment for why this looks dimensionally odd but is intentional
-    // parity, not a bug introduced here. GL33 uploads sun->Direction() and
-    // negates it in the shader for both NdotL and the half-vector.
+    // lights either). GL33's own camPos uniform (EngineGL33_Shaders.cpp's
+    // UploadFrameConstants) is hardcoded to {0,0,0,0} for ordinary mesh
+    // draws -- frame.cameraPos is computed but never actually uploaded to
+    // that slot. So GL33's real runtime viewDir is just -worldPos (correct,
+    // since worldPos is already camera-relative). The previous version here
+    // uploaded the real absolute camera position and computed
+    // camPosWorld-worldPos4, which doesn't converge to the same thing -- it
+    // produces a viewDir dominated by the (large) absolute camera position,
+    // nearly invariant to actually walking around the object. That silently
+    // killed the position-dependent specular response entirely (confirmed:
+    // orbiting the camera around a fixed point on a vehicle changed
+    // brightness on GL33 but not on Metal). Matching GL33's actual behavior,
+    // not its literal formula, fixes it.
     float3 specOut = float3(0.0);
     if (obj.specEnabled.x > 0.5 && sunEnabled > 0.0)
     {
-        float3 viewDir = normalize(frame.camPosWorld.xyz - worldPos4.xyz);
+        float3 viewDir = normalize(-worldPos4.xyz);
         float3 halfVec = normalize(toSun + viewDir);
         float NdotH = max(dot(worldNorm, halfVec), 0.0);
         float specPow = max(1.0, obj.specular.w);

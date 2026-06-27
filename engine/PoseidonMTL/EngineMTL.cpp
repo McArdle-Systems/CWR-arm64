@@ -745,8 +745,17 @@ void EngineMTL::PrepareTriangleTL(const MipInfo& mip, const render::LegacySpec& 
 // every call instead of caching them across a pass's whole run of draws --
 // correctness over performance for this milestone.
 void EngineMTL::PrepareMeshTL(const LightList& /*lights*/, const Matrix4& modelToWorld,
-                              const render::LegacySpec& /*spec*/)
+                              const render::LegacySpec& spec)
 {
+    // GL33's PrepareMeshTLImpl (EngineGL33_Mesh.cpp) re-asserts this on every
+    // TL draw -- without it, _sunEnabled stays stuck at whatever Shadow.cpp's
+    // GEngine->EnableSunLight(false) last set it to (true initially, but
+    // permanently false after the first shadow pass of the session, since
+    // nothing on Metal ever flipped it back on). That silently zeroed every
+    // per-vertex NdotL/specular term scene-wide, while ambient/diffuse still
+    // looked lit because SetMaterial bakes the sun's color into them
+    // unconditionally (see PrepareMeshTL's vertex-shader comment).
+    EnableSunLight(!render::Has(spec.material, render::Material::DisableSun));
     if (GScene == nullptr)
         return;
     Camera* camera = GScene->GetCamera();
@@ -791,13 +800,6 @@ void EngineMTL::PrepareMeshTL(const LightList& /*lights*/, const Matrix4& modelT
     world._42 -= static_cast<float>(camPos.Y());
     world._43 -= static_cast<float>(camPos.Z());
     std::memcpy(_tlObject.world.m, &world, sizeof(world));
-
-    // Real (non-relative) camera world position -- see FrameConstantsMTL's
-    // camPosWorld doc comment (specular viewDir term only).
-    _tlFrame.camPosWorld[0] = static_cast<float>(camPos.X());
-    _tlFrame.camPosWorld[1] = static_cast<float>(camPos.Y());
-    _tlFrame.camPosWorld[2] = static_cast<float>(camPos.Z());
-    _tlFrame.camPosWorld[3] = 0.0f;
 }
 
 void EngineMTL::BeginMeshTL(const Shape& sMesh, int /*spec*/, bool dynamic)
