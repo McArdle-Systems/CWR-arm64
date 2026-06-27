@@ -261,6 +261,14 @@ class EngineMTLBootstrap
 
     void DestroyTexture(int handle);
 
+    // Real per-device GPU memory budget (MTLDevice::recommendedMaxWorkingSetSize)
+    // -- Metal's equivalent of GL33's GL_NVX_gpu_memory_info/GL_ATI_meminfo
+    // VRAM query (TextureBankGL33_Cache.cpp), used by TextBankMTL's texture-
+    // streaming budget (Milestone 2). Unlike those vendor GL extensions,
+    // this is always available on Metal, so there's no need for GL33's
+    // 256MB fallback constant. Returns 0 if the device isn't ready yet.
+    uint64_t RecommendedMaxWorkingSetSize() const;
+
     // Re-uploads the full extent of an existing texture in place (font-atlas
     // pages, etc.) -- width/height must match what CreateTexture() was
     // originally called with for this handle; no resize support, same

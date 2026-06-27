@@ -1,5 +1,6 @@
 #include <PoseidonMTL/TextureMTL.hpp>
 #include <PoseidonMTL/EngineMTLBootstrap.hpp>
+#include <PoseidonMTL/TextBankMTL.hpp>
 
 #include <Poseidon/IO/FileServer.hpp>
 #include <Poseidon/IO/Streams/QStream.hpp>
@@ -13,6 +14,9 @@
 
 namespace Poseidon
 {
+
+DEFINE_FAST_ALLOCATOR(HMipCacheMTL)
+
 namespace
 {
 
@@ -83,6 +87,23 @@ int FindSmallCutoffLevel(const std::vector<DecodedImage>& levels)
 
 } // namespace
 
+TextureMTL::~TextureMTL()
+{
+    // Just the tiny link handle -- the GPU texture handles themselves
+    // (_smallGpuHandle/_bigGpuHandle) are released en masse by
+    // EngineMTLBootstrap::Shutdown(), same as every other texture, not
+    // individually here (matches the pre-existing TextBankMTL destructor
+    // comment's contract). The bank's running byte total isn't adjusted
+    // here either -- see TextBankMTL::ReleaseAllTextures's doc comment for
+    // why that's an accepted, documented tradeoff rather than an oversight.
+    if (_cache != nullptr)
+    {
+        _cache->Delete();
+        delete _cache;
+        _cache = nullptr;
+    }
+}
+
 bool TextureMTL::LoadPixels(EngineMTLBootstrap& bootstrap)
 {
     DecodedImageChain chain;
@@ -150,32 +171,91 @@ bool TextureMTL::LoadPixels(EngineMTLBootstrap& bootstrap)
     return true;
 }
 
-void TextureMTL::EnsureBigSurface(EngineMTLBootstrap& bootstrap, int level)
+bool TextureMTL::EnsureBigSurface(EngineMTLBootstrap& bootstrap, TextBankMTL& bank, int level)
 {
     if (level < 0)
         level = 0;
     if (level >= _smallCutoffLevel)
-        return; // small surface already covers this detail level
+        return false; // small surface already covers this detail level
     if (_bigGpuHandle != 0 && level >= _bigStartLevel)
-        return; // current big surface already covers it
+        return false; // current big surface already covers it
     if (level >= static_cast<int>(_levelPixels.size()))
-        return; // defensive -- shouldn't happen, NoteMipmapUse clamps to _nMipmaps-1
+        return false; // defensive -- shouldn't happen, NoteMipmapUse clamps to _nMipmaps-1
 
     if (_bigGpuHandle != 0)
     {
-        bootstrap.DestroyTexture(_bigGpuHandle);
-        _bigGpuHandle = 0;
-        _bigStartLevel = INT_MAX;
+        // Reuse EvictBigSurface rather than duplicating its cleanup here --
+        // an earlier version of this block destroyed the GPU texture and
+        // zeroed the byte/level fields directly but never unlinked _cache,
+        // leaving a zero-byte "ghost" entry permanently stuck in the bank's
+        // LRU list (EvictBigSurface's own early-out on _bigGpuHandle==0
+        // meant ReserveMemory's eviction loop could never clean it up
+        // later, since by the time it reached this ghost, the handle was
+        // already 0 -- an infinite eviction loop, confirmed live).
+        bank.AdjustTotalBigSurfaceBytes(-_bigSurfaceBytes);
+        EvictBigSurface(bootstrap);
     }
 
     std::vector<EngineMTLBootstrap::MipLevel> bigLevels;
     bigLevels.reserve(static_cast<size_t>(_smallCutoffLevel - level));
+    int64_t neededBytes = 0;
     for (int i = level; i < _smallCutoffLevel; i++)
-        bigLevels.push_back({_levels[static_cast<size_t>(i)].width, _levels[static_cast<size_t>(i)].height,
-                             _levelPixels[static_cast<size_t>(i)].data()});
+    {
+        const LevelInfo& info = _levels[static_cast<size_t>(i)];
+        bigLevels.push_back({info.width, info.height, _levelPixels[static_cast<size_t>(i)].data()});
+        neededBytes += static_cast<int64_t>(info.width) * info.height * 4;
+    }
+
+    // Evict other textures' big surfaces (least-recently-used first) if
+    // needed to make room *before* allocating -- mirrors GL33's
+    // TextBankGL33::ReserveMemory being called ahead of the actual upload
+    // in TextureGL33_Loading.cpp's LoadLevels.
+    bank.ReserveMemory(neededBytes);
 
     _bigGpuHandle = bootstrap.CreateTextureMipped(bigLevels.data(), static_cast<int>(bigLevels.size()));
-    _bigStartLevel = _bigGpuHandle != 0 ? level : INT_MAX;
+    if (_bigGpuHandle == 0)
+    {
+        _bigStartLevel = INT_MAX;
+        return false; // allocation failed even after reserving -- stay on small surface
+    }
+    _bigStartLevel = level;
+    _bigSurfaceBytes = neededBytes;
+    bank.AdjustTotalBigSurfaceBytes(neededBytes);
+    bank.TouchLRU(this);
+    return true;
+}
+
+void TextureMTL::EvictBigSurface(EngineMTLBootstrap& bootstrap)
+{
+    if (_bigGpuHandle == 0)
+        return;
+    bootstrap.DestroyTexture(_bigGpuHandle);
+    _bigGpuHandle = 0;
+    _bigStartLevel = INT_MAX;
+    _bigSurfaceBytes = 0;
+    if (_cache != nullptr)
+    {
+        _cache->Delete(); // unlink from whatever list it's in
+        delete _cache;
+        _cache = nullptr;
+    }
+}
+
+void TextureMTL::CacheUse(CLList<HMipCacheMTL>& list)
+{
+    HMipCacheMTL* node;
+    if (_cache != nullptr)
+    {
+        _cache->Delete(); // unlink from its current position
+        node = _cache;
+    }
+    else
+    {
+        node = new HMipCacheMTL;
+    }
+    node->texture = this;
+    list.Insert(node); // front of the list = most recently used
+    _cache = node;
 }
 
 bool TextureMTL::LoadPixelsInterpolated(EngineMTLBootstrap& bootstrap, RStringB n1, RStringB n2, float factor)

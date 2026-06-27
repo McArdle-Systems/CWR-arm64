@@ -2,6 +2,8 @@
 
 #include <Poseidon/Graphics/Textures/TextureBank.hpp>
 #include <Poseidon/Foundation/Types/LLinks.hpp>
+#include <Poseidon/Foundation/Containers/CacheList.hpp>
+#include <Poseidon/Foundation/Memory/FastAlloc.hpp>
 
 #include <climits>
 #include <cstdint>
@@ -11,17 +13,34 @@ namespace Poseidon
 {
 
 class EngineMTLBootstrap;
+class TextBankMTL;
+class TextureMTL;
+
+// LRU-list handle for a texture's big surface -- mirrors GL33's
+// HMipCacheGL33 (TextureGL33.hpp) exactly: a tiny, lazily-allocated link
+// object separate from the texture itself (most textures may never need a
+// big surface at all, so this avoids every TextureMTL always carrying link
+// pointers it might never use). TextBankMTL's _bigSurfaceLRU is the one
+// list root; TextureMTL::CacheUse moves this handle to the front whenever
+// its big surface is touched (created or reconfirmed sufficient), so
+// CLList::Last() is always the least-recently-used eviction candidate.
+class HMipCacheMTL : public CLDLink
+{
+  public:
+    TextureMTL* texture = nullptr;
+
+    USE_FAST_ALLOCATOR;
+};
 
 // Real Metal-backed texture: decodes every mip level via the shared
 // PAADecoder utility (handles every PAA/PAC source format -- DXT1/3/5,
 // ARGB8888/4444/1555, AI88, P8 -- decompressing to RGBA8888 on the CPU,
 // since Apple Silicon GPUs have no BC/DXT hardware decode).
 //
-// Milestone 1 of the GL33-parity texture-streaming port (see
-// metal_texture_streaming_2026-06-25/metal_idle_shadow_black_fixed memory
-// for the full design): every level is still decoded up front (cheap,
-// CPU-only) and kept in `_levelPixels`, but only the coarse tail (below
-// `_smallCutoffLevel`, sized like GL33's `_maxSmallTexturePixels` --
+// GL33-parity texture-streaming port (see metal_texture_streaming_2026-06-25
+// memory for the full design): every level is still decoded up front
+// (cheap, CPU-only) and kept in `_levelPixels`, but only the coarse tail
+// (below `_smallCutoffLevel`, sized like GL33's `_maxSmallTexturePixels` --
 // TextureBankGL33_Core.cpp) uploads to GPU immediately, as `_smallGpuHandle`
 // -- a tiny, always-resident texture so nothing ever fully disappears.
 // Finer detail uploads on demand into a separate `_bigGpuHandle` texture
@@ -29,23 +48,39 @@ class EngineMTLBootstrap;
 // (`NoteMipmapUse`/`_levelNeededThisFrame`) actually asks for it. `GpuHandle()`
 // prefers the big surface, falling back to small.
 //
-// Still simpler than TextureGL33 in one real way: no memory budget or LRU
-// eviction yet -- once a big surface is created it stays resident forever
-// (matches pre-Milestone-1 behavior as a safe floor). That's Milestone 2.
+// Milestone 2: big surfaces are no longer permanent once created -- TextBankMTL
+// tracks total big-surface bytes against a real per-device budget
+// (EngineMTLBootstrap::RecommendedMaxWorkingSetSize) and evicts the least-
+// recently-used one (EvictBigSurface) to make room for a new promotion once
+// over budget. `CacheUse`/`_cache` (the LRU link, mirroring GL33's
+// HMipCacheGL33 -- see TextureMTL.hpp's `HMipCacheMTL`) is how a texture's
+// big surface gets marked "still wanted" each time it's touched, so eviction
+// always picks the genuinely stalest one. Simplified from GL33's 5 LRU
+// lists (whole/partial x this-frame/last-frame, plus a fully-aged pool) to
+// one: GL33 needs that split because it streams individual mip levels
+// incrementally and tracks whether a texture got everything it wanted *this
+// frame* specifically; Metal's big surface is created eagerly with exactly
+// the levels needed in one shot, so there's no partial/incremental state to
+// track -- a single move-to-front-on-use list already gives correct LRU
+// ordering (recently-touched stays near the front; only genuinely stale
+// entries sink to the back) without GL33's frame-generation bookkeeping.
 //
-// TODO(metal-parity): budget + LRU eviction (Milestone 2) and GPU-surface
-// pooling (Milestone 3, stretch) are the remaining real GL33 parity gaps --
-// see TextureGL33.hpp / TextureGL33_Loading.cpp / TextureBankGL33_Cache.cpp /
-// TextureBankGL33_Core.cpp for the reference implementation. Porting full
-// eviction is harder on Metal than GL: an MTLTexture's mip range is fixed at
-// creation, so "evicting" the big surface means destroying and recreating
-// the texture object (no GL-style in-place glTexSubImage drop), unlike the
-// small/big *split* itself (this milestone), which maps cleanly since each
-// tier is already its own texture object.
+// TODO(metal-parity): GPU-surface pooling (Milestone 3, stretch -- GL33's
+// `_freeTextures`, reusing released GPU objects instead of always
+// destroying/recreating on evict/promote) is the one remaining gap. See
+// TextureGL33.hpp / TextureGL33_Loading.cpp / TextureBankGL33_Cache.cpp /
+// TextureBankGL33_Core.cpp for the reference implementation.
 class TextureMTL : public Texture
 {
   public:
     TextureMTL() = default;
+    // Cleans up the LRU link handle (if any) -- CLTLink's own destructor
+    // would auto-unlink it from whatever list it's in if left to run on the
+    // handle itself, but since `_cache` is a separately-allocated object,
+    // it still needs an explicit `delete` here or it leaks (the GPU big
+    // surface itself, if any, is released by EngineMTLBootstrap::Shutdown()
+    // same as every other texture handle -- see TextBankMTL's destructor).
+    ~TextureMTL() override;
 
     // Reads Name() through the VFS (GFileServer, so PBO-packed textures
     // work), decodes via DecodePAABuffer, and uploads via `bootstrap`.
@@ -76,21 +111,38 @@ class TextureMTL : public Texture
 
     // Prefers the on-demand big surface (real requested detail); falls back
     // to the always-resident small surface when no big surface has been
-    // created yet (or it was evicted, once Milestone 2 adds that) -- never
-    // 0 once LoadPixels has succeeded once, matching the "texture never
-    // fully disappears" floor GL33's own small surface guarantees.
+    // created yet, or it was evicted under budget pressure -- never 0 once
+    // LoadPixels has succeeded once, matching the "texture never fully
+    // disappears" floor GL33's own small surface guarantees.
     int GpuHandle() const { return _bigGpuHandle != 0 ? _bigGpuHandle : _smallGpuHandle; }
 
     bool IsGpuValid() const override { return GpuHandle() != 0; }
 
     // Called from TextBankMTL::UseMipmap right after NoteMipmapUse computes
-    // the screen-space-driven `level` -- creates (or recreates, if a finer
-    // level than the current big surface covers is now needed) the big
-    // surface spanning [level, _smallCutoffLevel). A no-op if `level` falls
-    // within what the small surface already covers, or the current big
-    // surface already covers `level`. See TextureMTL.hpp's class doc
-    // comment for the overall small/big design.
-    void EnsureBigSurface(EngineMTLBootstrap& bootstrap, int level);
+    // the screen-space-driven `level`. Three outcomes:
+    //  - level falls within what the small surface already covers, or the
+    //    current big surface already covers it: no-op, returns false.
+    //  - otherwise: reserves budget (bank.ReserveMemory, may evict other
+    //    textures' big surfaces), destroys any existing too-coarse big
+    //    surface, creates a new one spanning [level, _smallCutoffLevel),
+    //    updates the bank's byte total and LRU position, returns true.
+    // See TextureMTL.hpp's class doc comment for the overall design.
+    bool EnsureBigSurface(EngineMTLBootstrap& bootstrap, TextBankMTL& bank, int level);
+
+    // Destroys the big surface (if any) and removes this texture from
+    // whatever LRU list it's currently in. Called by TextBankMTL::ReserveMemory
+    // on the least-recently-used texture(s) when over budget. Does NOT touch
+    // the bank's byte total itself -- the caller (which already knows
+    // BigSurfaceBytes() from before calling this) is responsible for that,
+    // same division of responsibility EnsureBigSurface uses.
+    void EvictBigSurface(EngineMTLBootstrap& bootstrap);
+
+    // Moves this texture's LRU handle to the front of `list` (creating the
+    // handle on first use) -- mirrors GL33's TextureGL33::CacheUse exactly.
+    void CacheUse(CLList<HMipCacheMTL>& list);
+
+    int64_t BigSurfaceBytes() const { return _bigSurfaceBytes; }
+    bool HasBigSurface() const { return _bigGpuHandle != 0; }
 
     void SetMaxSize(int maxSize) override { _maxSize = maxSize; }
     int AMaxSize() const override { return _maxSize; }
@@ -140,15 +192,24 @@ class TextureMTL : public Texture
 
     int _w = 0, _h = 0;
     // EngineMTLBootstrap texture handles; 0 = none/failed. Small is set once
-    // by LoadPixels and never changes thereafter (until Milestone 2 adds
-    // eviction); big is 0 until the first EnsureBigSurface call actually
-    // needs finer detail than small provides.
+    // by LoadPixels and never changes thereafter; big is 0 until the first
+    // EnsureBigSurface call actually needs finer detail than small
+    // provides, and can return to 0 again if evicted under budget pressure
+    // (Milestone 2).
     int _smallGpuHandle = 0;
     int _bigGpuHandle = 0;
     // Finest original-chain level the current big surface covers; INT_MAX
     // when there is no big surface. Levels are numbered finest-first (0 =
     // top/largest), matching the rest of this class and GL33's convention.
     int _bigStartLevel = INT_MAX;
+    // Byte size of the current big surface (sum of width*height*4 across
+    // the levels it covers), 0 when there is no big surface -- what
+    // TextBankMTL's budget tracking adds/subtracts from its running total.
+    int64_t _bigSurfaceBytes = 0;
+    // LRU link handle for the big surface, lazily allocated by CacheUse on
+    // first use; nullptr if this texture has never had a big surface yet.
+    // See HMipCacheMTL's doc comment.
+    HMipCacheMTL* _cache = nullptr;
     // First (numerically; coarsest-adjacent) level the small surface covers
     // -- i.e. small spans [_smallCutoffLevel, _nMipmaps), big spans
     // [requested level, _smallCutoffLevel) on demand. Set once in LoadPixels.

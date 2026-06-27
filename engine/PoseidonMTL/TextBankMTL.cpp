@@ -1,4 +1,5 @@
 #include <PoseidonMTL/TextBankMTL.hpp>
+#include <PoseidonMTL/EngineMTLBootstrap.hpp>
 
 #include <Poseidon/IO/ParamFile/ParamFile.hpp>
 #include <Poseidon/IO/Streams/QStream.hpp>
@@ -125,7 +126,16 @@ MipInfo TextBankMTL::UseMipmap(Texture* texture, int level, int levelTop)
 
     TextureMTL* mtlTexture = static_cast<TextureMTL*>(texture);
     const int selectedLevel = mtlTexture->NoteMipmapUse(level, levelTop);
-    mtlTexture->EnsureBigSurface(*_bootstrap, selectedLevel);
+    if (!mtlTexture->EnsureBigSurface(*_bootstrap, *this, selectedLevel) && mtlTexture->HasBigSurface())
+    {
+        // EnsureBigSurface returns false both when nothing needed to change
+        // AND when allocation failed -- HasBigSurface() distinguishes "no-op
+        // because already sufficient" (still want to refresh its LRU
+        // position, it's genuinely in use this frame) from "no big surface
+        // at all" (small-surface-only texture, or a promotion that failed
+        // even after reserving -- nothing to touch in the LRU either way).
+        TouchLRU(mtlTexture);
+    }
     return MipInfo(texture, selectedLevel);
 }
 
@@ -161,6 +171,51 @@ void TextBankMTL::FinishFrame()
         TextureMTL* texture = _texture[i];
         if (texture)
             texture->FinishFrameUseTracking();
+    }
+}
+
+void TextBankMTL::EnsureBudgetInitialized()
+{
+    if (_maxTextureMemory >= 0)
+        return;
+    // No GL33-style 256MB fallback needed -- RecommendedMaxWorkingSetSize is
+    // always available once the device exists (EngineMTLBootstrap.hpp's doc
+    // comment). If the device genuinely isn't ready yet, stay uninitialized
+    // (-1) and retry next call rather than locking in a bogus 0-byte budget.
+    const uint64_t recommended = _bootstrap->RecommendedMaxWorkingSetSize();
+    if (recommended == 0)
+        return;
+    _maxTextureMemory = static_cast<int64_t>(recommended);
+}
+
+void TextBankMTL::ReserveMemory(int64_t neededBytes)
+{
+    EnsureBudgetInitialized();
+    if (_maxTextureMemory < 0)
+        return; // budget not available yet -- nothing to enforce against
+    while (_totalBigSurfaceBytes + neededBytes > _maxTextureMemory)
+    {
+        HMipCacheMTL* victim = _bigSurfaceLRU.Last();
+        if (victim == nullptr)
+            break; // nothing left to evict
+        TextureMTL* texture = victim->texture;
+        const int64_t freed = texture->BigSurfaceBytes();
+        texture->EvictBigSurface(*_bootstrap); // also unlinks `victim` from this list
+        _totalBigSurfaceBytes -= freed;
+        // Safety net: a zero-byte victim means EvictBigSurface had nothing
+        // to free (e.g. some other bug left a stale LRU entry pointing at a
+        // texture with no big surface). Without this, that entry could
+        // become a permanent no-progress loop -- confirmed live once
+        // already (a different bug, now fixed) when this hung the game.
+        // Bail out rather than attempt to patch the list by hand here --
+        // a failed promotion (texture stays on its small surface) is a far
+        // smaller problem than risking a double-free/leak in a fallback
+        // path that should never trigger now the real bug is fixed.
+        if (freed <= 0)
+        {
+            LOG_WARN(Graphics, "MTL texture streaming: zero-byte eviction, bailing out of ReserveMemory");
+            break;
+        }
     }
 }
 

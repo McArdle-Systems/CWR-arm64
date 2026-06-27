@@ -1582,6 +1582,11 @@ void EngineMTLBootstrap::DestroyTexture(int handle)
     }
 }
 
+uint64_t EngineMTLBootstrap::RecommendedMaxWorkingSetSize() const
+{
+    return _impl->device != nullptr ? _impl->device->recommendedMaxWorkingSetSize() : 0;
+}
+
 void EngineMTLBootstrap::Shutdown()
 {
     for (MTL::Texture*& tex : _impl->textures)
