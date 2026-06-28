@@ -119,7 +119,7 @@ backend's current status and known issues.
 ## How to Build and Run (iOS / arm64)
 
 iOS uses Metal only. `PoseidonGame` builds the app bundle and its `PoseidonMTL`
-dependency.
+dependency; put game data in `packages/Combined/` so it is copied into the app.
 
 Simulator:
 
