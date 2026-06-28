@@ -219,7 +219,12 @@ jobs:
 
       - name: Build Xcode target
         if: matrix.build_target != '' && matrix.xcode == true
-        run: cmake --build ${{ matrix.build_dir }} --target ${{ matrix.build_target }} -- -allowProvisioningUpdates
+        run: >
+          cmake --build ${{ matrix.build_dir }}
+          --target ${{ matrix.build_target }}
+          --
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO
 
       - name: Test
         if: runner.os != 'Windows' && matrix.skip_tests != true

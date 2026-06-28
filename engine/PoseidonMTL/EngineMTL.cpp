@@ -86,6 +86,11 @@ void EngineMTL::CreateWindowAndDevice()
     _windowMode = placement.mode;
 
     Uint32 flags = SDL_WINDOW_METAL | SDL_WINDOW_HIGH_PIXEL_DENSITY;
+#ifdef POSEIDON_TARGET_IOS
+    flags |= SDL_WINDOW_FULLSCREEN | SDL_WINDOW_BORDERLESS;
+    _windowMode = WindowMode::Fullscreen;
+    _windowed = false;
+#else
     switch (placement.mode)
     {
         case WindowMode::Fullscreen:
@@ -96,6 +101,7 @@ void EngineMTL::CreateWindowAndDevice()
             flags |= SDL_WINDOW_RESIZABLE;
             break;
     }
+#endif
 
     _sdlWindow = SDL_CreateWindow("Poseidon [Metal]", placement.width, placement.height, flags);
     if (!_sdlWindow)
@@ -104,6 +110,10 @@ void EngineMTL::CreateWindowAndDevice()
         return;
     }
 
+#ifdef POSEIDON_TARGET_IOS
+    if (!SDL_SetWindowFullscreen(_sdlWindow, true))
+        LOG_WARN(Graphics, "MTL: SDL_SetWindowFullscreen(true) failed for iOS startup: {}", SDL_GetError());
+#else
     if (placement.mode == WindowMode::Borderless)
     {
         SDL_SetWindowFullscreenMode(_sdlWindow, nullptr);
@@ -114,6 +124,7 @@ void EngineMTL::CreateWindowAndDevice()
     {
         SDL_SetWindowPosition(_sdlWindow, placement.posX, placement.posY);
     }
+#endif
 
     if (placement.refreshHz > 0)
         _refreshRate = placement.refreshHz;
@@ -918,6 +929,10 @@ bool EngineMTL::SetWindowMode(WindowMode mode)
 {
     if (!_sdlWindow)
         return false;
+
+#ifdef POSEIDON_TARGET_IOS
+    mode = WindowMode::Fullscreen;
+#endif
 
     if (_windowed && mode != WindowMode::Windowed)
         SDL_GetWindowSize(_sdlWindow, &_windowedRestoreW, &_windowedRestoreH);
