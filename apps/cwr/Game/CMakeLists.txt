@@ -108,8 +108,12 @@ set_target_properties(PoseidonGame PROPERTIES
 if(POSEIDON_TARGET_IOS)
     # iOS executables are always app bundles -- give it a real bundle ID
     # and name so it's installable (CMake leaves these blank by default).
+    # Custom Info.plist (vs. CMake's built-in default template) so we can
+    # lock orientation to landscape -- this engine has no portrait UI at
+    # all (desktop-style HUD/menus laid out for landscape).
     set_target_properties(PoseidonGame PROPERTIES
         MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info-iOS.plist.in"
         MACOSX_BUNDLE_GUI_IDENTIFIER "io.mcardle.cwr.poseidongame"
         MACOSX_BUNDLE_BUNDLE_NAME "PoseidonGame"
         MACOSX_BUNDLE_BUNDLE_VERSION "1.0"

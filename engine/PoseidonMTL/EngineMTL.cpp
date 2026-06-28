@@ -4,6 +4,7 @@
 
 #include <Poseidon/Core/Application.hpp>
 #include <Poseidon/Core/Config/EngineConfig.hpp>
+#include <Poseidon/Dev/Debug/DebugOverlay.hpp>
 #include <Poseidon/Graphics/Shared/WindowPlacement.hpp>
 #include <Poseidon/Graphics/Core/TLVertex.hpp>
 #include <Poseidon/Graphics/Core/MatrixConversion.hpp>
@@ -131,6 +132,10 @@ void EngineMTL::CreateWindowAndDevice()
     LOG_INFO(Graphics, "MTL: Metal device — {}", _bootstrap.GetRendererName().c_str());
     LOG_INFO(Graphics, "MTL: surface resolved to {}x{} {}", _w, _h, _windowed ? "windowed" : "fullscreen");
 
+    Dev::DebugOverlay::InitForMetal(_sdlWindow);
+    if (!_bootstrap.InitDebugOverlayRenderer())
+        LOG_WARN(Graphics, "MTL: DebugOverlay Metal renderer init failed");
+
     // Hook SDL events to the engine — same helper GL33 uses, input
     // forwarding/focus/Alt+Enter logic is identical across backends.
     _eventWindow.Attach(_sdlWindow, _w, _h);
@@ -145,6 +150,9 @@ EngineMTL::~EngineMTL()
 
     delete _textBank;
     _textBank = nullptr;
+
+    _bootstrap.ShutdownDebugOverlayRenderer();
+    Dev::DebugOverlay::Shutdown();
 
     _bootstrap.Shutdown(); // releases device/queue/layer; AttachToWindow means it does NOT own _sdlWindow
 
@@ -174,10 +182,16 @@ void EngineMTL::InitDraw(bool clear, PackedColor color)
     bool began = _bootstrap.BeginFrame(color.R8() / 255.0f, color.G8() / 255.0f, color.B8() / 255.0f,
                                        color.A8() / 255.0f, clear, /*clearZ=*/true);
     if (!began)
+    {
         LOG_WARN(Graphics, "MTL: InitDraw's BeginFrame failed (no drawable -- window minimized/occluded?)");
+        return;
+    }
 
     if (_textBank)
         _textBank->StartFrame();
+
+    _bootstrap.BeginDebugOverlayFrame();
+    Dev::DebugOverlay::NewFrame();
 
     Engine::InitDraw(clear, color);
     _frameOpen = true;
@@ -189,6 +203,9 @@ void EngineMTL::FinishDraw()
         return;
 
     Engine::FinishDraw();
+    DrawFinishTexts();
+    Dev::DebugOverlay::Render();
+    _bootstrap.RenderDebugOverlay();
 
     if (_textBank)
         _textBank->FinishFrame();
@@ -790,6 +807,13 @@ void EngineMTL::PrepareMeshTL(const LightList& /*lights*/, const Matrix4& modelT
     _tlFrame.fogColor[1] = _fogColor.G();
     _tlFrame.fogColor[2] = _fogColor.B();
     _tlFrame.fogColor[3] = 1.0f;
+    // GL33 uploads zero to this shader slot for ordinary mesh draws; keep
+    // Metal's constant-buffer layout identical without feeding the absolute
+    // camera position into camera-relative lighting math.
+    _tlFrame.gl33CamPosZero[0] = 0.0f;
+    _tlFrame.gl33CamPosZero[1] = 0.0f;
+    _tlFrame.gl33CamPosZero[2] = 0.0f;
+    _tlFrame.gl33CamPosZero[3] = 0.0f;
 
     // Per-object: camera-relative world matrix (translation has the camera
     // position subtracted), same as GL33's PrepareMeshTLImpl.

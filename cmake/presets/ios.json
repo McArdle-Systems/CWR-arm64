@@ -41,6 +41,19 @@
       }
     },
     {
+      "name": "ios-arm64-simulator-xcode",
+      "displayName": "iOS Simulator arm64 Xcode Debug",
+      "inherits": "base",
+      "generator": "Xcode",
+      "binaryDir": "${sourceDir}/build/ios-arm64-simulator-xcode",
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "arm64-ios-simulator",
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/ios-arm64-clang.cmake",
+        "CMAKE_C_COMPILER_LAUNCHER": "",
+        "CMAKE_CXX_COMPILER_LAUNCHER": ""
+      }
+    },
+    {
       "name": "ios-arm64-device",
       "displayName": "iOS Device arm64 Xcode (code signing/provisioning)",
       "inherits": "base",

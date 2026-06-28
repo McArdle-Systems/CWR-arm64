@@ -86,6 +86,13 @@ bool s_visible = false;
 bool s_selectShadowsTab = false; // one-shot: force-select the Shadows tab next draw
 bool s_selectMemoryTab = false;  // one-shot: force-select the Memory tab next draw
 SDL_Window* s_window = nullptr;
+enum class RendererBackend
+{
+    None,
+    OpenGL,
+    Metal
+};
+RendererBackend s_rendererBackend = RendererBackend::None;
 // Saved mouse-grab state while the dev panel holds the cursor released.
 bool s_mouseReleasedByPanel = false;
 bool s_savedMouseGrab = false;
@@ -115,6 +122,18 @@ std::vector<std::function<void()>> s_pendingActions;
 void Defer(std::function<void()> action)
 {
     s_pendingActions.push_back(std::move(action));
+}
+
+void CreateSharedContext(SDL_Window* window)
+{
+    s_window = window;
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.IniFilename = nullptr; // no imgui.ini side-effects
+    ImGui::StyleColorsDark();
 }
 
 // One mutable copy per (slot, role) shown by the tuner.  Pulled from the
@@ -1571,55 +1590,73 @@ void DrawMainWindow()
 }
 } // namespace
 
-#ifdef POSEIDON_TARGET_IOS
-void Init(SDL_Window*, void*)
-{
-    // Never called on iOS -- only the GL33 engine wires this overlay up,
-    // and GL33 isn't built for this platform. Left unimplemented (not
-    // even creating an ImGui context) rather than faked, so a future
-    // caller fails loudly instead of silently no-oping.
-}
-
-void Shutdown() {}
-#else
 void Init(SDL_Window* window, void* glContext)
 {
     if (s_initialized)
         return;
-    s_window = window;
-
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.IniFilename = nullptr; // no imgui.ini side-effects
-    ImGui::StyleColorsDark();
+#ifdef POSEIDON_TARGET_IOS
+    LOG_ERROR(Graphics, "DebugOverlay: OpenGL backend requested on iOS");
+    (void)window;
+    (void)glContext;
+    return;
+#else
+    CreateSharedContext(window);
 
     if (!ImGui_ImplSDL3_InitForOpenGL(window, glContext))
     {
         LOG_ERROR(Graphics, "DebugOverlay: ImGui_ImplSDL3_InitForOpenGL failed");
+        ImGui::DestroyContext();
+        s_window = nullptr;
         return;
     }
     if (!ImGui_ImplOpenGL3_Init("#version 330"))
     {
         LOG_ERROR(Graphics, "DebugOverlay: ImGui_ImplOpenGL3_Init failed");
+        ImGui_ImplSDL3_Shutdown();
+        ImGui::DestroyContext();
+        s_window = nullptr;
         return;
     }
 
+    s_rendererBackend = RendererBackend::OpenGL;
     s_initialized = true;
     LOG_INFO(Graphics, "DebugOverlay: ImGui initialized (press Ctrl+` / Ctrl+; to toggle)");
+#endif
+}
+
+void InitForMetal(SDL_Window* window)
+{
+    if (s_initialized)
+        return;
+    CreateSharedContext(window);
+
+    if (!ImGui_ImplSDL3_InitForMetal(window))
+    {
+        LOG_ERROR(Graphics, "DebugOverlay: ImGui_ImplSDL3_InitForMetal failed");
+        ImGui::DestroyContext();
+        s_window = nullptr;
+        return;
+    }
+
+    s_rendererBackend = RendererBackend::Metal;
+    s_initialized = true;
+    LOG_INFO(Graphics, "DebugOverlay: ImGui initialized for Metal (press Ctrl+` / Ctrl+; to toggle)");
 }
 
 void Shutdown()
 {
     if (!s_initialized)
         return;
-    ImGui_ImplOpenGL3_Shutdown();
+#ifndef POSEIDON_TARGET_IOS
+    if (s_rendererBackend == RendererBackend::OpenGL)
+        ImGui_ImplOpenGL3_Shutdown();
+#endif
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
+    s_rendererBackend = RendererBackend::None;
     s_initialized = false;
+    s_window = nullptr;
 }
-#endif
 
 void ProcessEvent(const SDL_Event& event)
 {
@@ -1633,12 +1670,11 @@ void ProcessEvent(const SDL_Event& event)
         // role-slot flicker) gated by --dev.
         if (!AppConfig::Instance().DevMode())
             return;
-        // Ctrl+` (US) / Ctrl+; (CZ) — toggle the dev panel.  Bound by physical
-        // scancode (GRAVE = the key above Tab) so the same key works regardless
-        // of keyboard layout.  Ctrl is required so the unmodified key stays
-        // available to the game (it's used in radio/chat commands).
+        // Ctrl+` (US) / Ctrl+; (CZ) — toggle the dev panel.  Ctrl is required
+        // so the unmodified key stays available to the game (it's used in
+        // radio/chat commands).
         const bool ctrlDown = (event.key.mod & SDL_KMOD_CTRL) != 0;
-        if (event.key.scancode == SDL_SCANCODE_GRAVE && ctrlDown)
+        if ((event.key.scancode == SDL_SCANCODE_GRAVE || event.key.scancode == SDL_SCANCODE_SEMICOLON) && ctrlDown)
         {
             ToggleVisible();
             return;
@@ -1658,7 +1694,8 @@ void NewFrame()
     // drawlist to stay on top.  When hidden, fall back to the engine cursor.
     ImGui::GetIO().MouseDrawCursor = s_visible;
 #ifndef POSEIDON_TARGET_IOS
-    ImGui_ImplOpenGL3_NewFrame();
+    if (s_rendererBackend == RendererBackend::OpenGL)
+        ImGui_ImplOpenGL3_NewFrame();
 #endif
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
@@ -1675,8 +1712,11 @@ void Render()
     // Make sure we draw to the default framebuffer in case the engine left
     // an FBO bound — happens with post-FX in GL33.  Other state (blend,
     // scissor, vao, depth) is saved/restored inside RenderDrawData.
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    if (s_rendererBackend == RendererBackend::OpenGL)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    }
 #endif
 
     // Drain deferred actions queued by UI click handlers.  See the
