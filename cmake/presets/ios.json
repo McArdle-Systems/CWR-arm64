@@ -1,0 +1,44 @@
+{
+  "version": 6,
+  "include": [
+    "base.json"
+  ],
+  "configurePresets": [
+    {
+      "name": "ios-clang-debug",
+      "hidden": true,
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "ios-clang-relwithdebinfo",
+      "hidden": true,
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "ios-arm64-simulator",
+      "displayName": "iOS Simulator arm64 Clang Debug",
+      "inherits": "ios-clang-debug",
+      "binaryDir": "${sourceDir}/build/ios-arm64-simulator",
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "arm64-ios-simulator",
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/ios-arm64-clang.cmake"
+      }
+    },
+    {
+      "name": "ios-arm64-simulator-rwdi",
+      "displayName": "iOS Simulator arm64 Clang RelWithDebInfo",
+      "inherits": "ios-clang-relwithdebinfo",
+      "binaryDir": "${sourceDir}/build/ios-arm64-simulator-rwdi",
+      "cacheVariables": {
+        "VCPKG_TARGET_TRIPLET": "arm64-ios-simulator",
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/ios-arm64-clang.cmake"
+      }
+    }
+  ]
+}
