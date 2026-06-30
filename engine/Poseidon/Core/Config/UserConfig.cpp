@@ -36,7 +36,8 @@ void UserConfig_LoadDifficulties(UserConfig& uc)
     ParamFile userCfg;
     const std::string path = DifficultyConfigPath();
     std::error_code ec;
-    if (std::filesystem::exists(path, ec))
+    const bool hasDifficultyCfg = std::filesystem::exists(path, ec);
+    if (hasDifficultyCfg)
         userCfg.Parse(RString(path.c_str()));
     else
         userCfg.Parse(::Poseidon::GetUserParams());
@@ -60,6 +61,20 @@ void UserConfig_LoadDifficulties(UserConfig& uc)
     const ParamEntry* entry = userCfg.FindEntry("showTitles");
     if (entry)
         uc.showTitles = *entry;
+
+    entry = userCfg.FindEntry("easyMode");
+    if (entry)
+    {
+        uc.easyMode = *entry;
+    }
+    else if (hasDifficultyCfg)
+    {
+        ParamFile legacyCfg;
+        legacyCfg.Parse(::Poseidon::GetUserParams());
+        entry = legacyCfg.FindEntry("easyMode");
+        if (entry)
+            uc.easyMode = *entry;
+    }
 }
 
 void UserConfig_SaveDifficulties(const UserConfig& uc)
@@ -77,6 +92,7 @@ void UserConfig_SaveDifficulties(const UserConfig& uc)
         out << "diff" << descs[i].name << "[]={" << static_cast<int>(uc.cadetDifficulty[i]) << ","
             << static_cast<int>(uc.veteranDifficulty[i]) << "};\n";
     out << "showTitles=" << static_cast<int>(uc.showTitles) << ";\n";
+    out << "easyMode=" << static_cast<int>(uc.easyMode) << ";\n";
 
     if (!out.good())
         LOG_WARN(Config, "DifficultyConfig: failed to write '{}'", path);
