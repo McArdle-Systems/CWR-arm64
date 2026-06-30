@@ -76,7 +76,11 @@ while (($# > 0)); do
 done
 
 if [[ "$TEST_MISSION_SET" == "1" ]]; then
-    GAME_ARGS=(--test-mission "$TEST_MISSION" "${GAME_ARGS[@]}")
+    if ((${#GAME_ARGS[@]} > 0)); then
+        GAME_ARGS=(--test-mission "$TEST_MISSION" "${GAME_ARGS[@]}")
+    else
+        GAME_ARGS=(--test-mission "$TEST_MISSION")
+    fi
 fi
 
 BUILD_DIR="$ROOT_DIR/build/$PRESET"
@@ -94,4 +98,4 @@ exec "$GAME_BIN" \
     --render "$RENDER" \
     --dev \
     --show-fps \
-    "${GAME_ARGS[@]}"
+    ${GAME_ARGS[@]+"${GAME_ARGS[@]}"}
