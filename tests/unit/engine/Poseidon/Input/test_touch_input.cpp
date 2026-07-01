@@ -183,6 +183,29 @@ TEST_CASE("TouchInput: group-bar tap without a live world falls back to primary 
     CHECK(GInput.mouse.buttonsToDo[0]);
 }
 
+// Same reasoning as the group-bar test above: CommandMenuKeyAtTouch requires
+// a live GWorld/InGameUI to have anything recorded in _commandMenuTapZones,
+// which this Input-layer unit test binary never sets up. A tap over where
+// the commanding menu would be (upper-right, away from the group bar) must
+// keep falling back to the pre-existing Look-region quick-tap behavior.
+TEST_CASE("TouchInput: command-menu tap without a live world falls back to primary click", "[input][touch]")
+{
+    TouchFixture fixture;
+    TouchInput_TestSetGameplaySceneOverride(true, true);
+    GInput.keyboard.ForgetKeys();
+    GInput.mouse.FlushAndReset();
+
+    TouchInput_HandleFingerEvent(Finger(SDL_EVENT_FINGER_DOWN, 1, 0.72f, 0.18f));
+    TouchInput_HandleFingerEvent(Finger(SDL_EVENT_FINGER_UP, 1, 0.72f, 0.18f));
+
+    GInput.keyboard.Update(Poseidon::Foundation::GlobalTickCount(), 16, true);
+    GInput.mouse.Update(GInput.cursor, 0, false,
+                        Poseidon::Foundation::UITime((int)Poseidon::Foundation::GlobalTickCount()), nullptr);
+
+    CHECK_FALSE(GInput.keyboard.keysToDo[SDL_SCANCODE_1]);
+    CHECK(GInput.mouse.buttonsToDo[0]);
+}
+
 TEST_CASE("TouchInput: long gameplay look hold does not fire on release", "[input][touch]")
 {
     TouchFixture fixture;

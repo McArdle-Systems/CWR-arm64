@@ -753,6 +753,8 @@ void InGameUI::DrawTankDirection(const Camera& camera)
 
 void InGameUI::DrawMenu()
 {
+    _commandMenuTapZones.Clear();
+
     if (_tmPos >= 1.0)
     {
         return;
@@ -816,6 +818,18 @@ void InGameUI::DrawMenu()
         bool bottom = item->_key == SDL_SCANCODE_BACKSPACE;
         float t = bottom ? tmY + tmH - border - height : top;
 
+        if (item->_enable)
+        {
+            // Full row width, not just the text's bounding box - a bigger,
+            // more forgiving touch target than a tight text-only hit-box.
+            CommandMenuTapZone& zone = _commandMenuTapZones.Append();
+            zone.x = tmLeft + border;
+            zone.y = t;
+            zone.w = tmW - 2 * border;
+            zone.h = height;
+            zone.key = item->_key;
+        }
+
         GLOB_ENGINE->DrawText(Point2DFloat(tmLeft + border, t), size, _font24, color, item->_char);
         float ow = GEngine->GetTextWidth(size, _font24, item->_char);
         left = tmLeft + floatMax(0.02, ow + 0.01);
@@ -825,6 +839,23 @@ void InGameUI::DrawMenu()
             top += height;
         }
     }
+}
+
+int InGameUI::CommandMenuKeyAtTouch(float normX, float normY) const
+{
+    // _commandMenuTapZones is only populated while DrawMenu actually draws
+    // rows (gated on _showMenu via ShouldShowGameplayHUD()/DrawHUD, and on
+    // _tmPos - the menu's slide-in animation - internally) - if the menu
+    // isn't open this frame, it's empty and every tap here is a miss.
+    for (int i = 0; i < _commandMenuTapZones.Size(); i++)
+    {
+        const CommandMenuTapZone& zone = _commandMenuTapZones[i];
+        if (normX >= zone.x && normX <= zone.x + zone.w && normY >= zone.y && normY <= zone.y + zone.h)
+        {
+            return zone.key;
+        }
+    }
+    return 0;
 }
 
 void InGameUI::DrawTacticalDisplay(const Camera& camera, AIUnit* unit, const TargetList& list)

@@ -77,6 +77,7 @@ enum class FingerRole
     Look,
     Button,
     GroupSelect,
+    CommandMenuSelect,
 };
 
 enum class EquipmentItem
@@ -459,6 +460,19 @@ void EmitGroupSelectTap(const Finger& finger)
     }
 }
 
+void EmitCommandMenuSelectTap(const Finger& finger)
+{
+    if (!GWorld || !GWorld->GetUI())
+        return;
+
+    const int key = GWorld->GetUI()->CommandMenuKeyAtTouch(TouchToUiX(finger.x), TouchToUiY(finger.y));
+    if (key == SDL_SCANCODE_UNKNOWN)
+        return;
+
+    SDLInput_BufferKeyEvent((SDL_Scancode)key, true, Foundation::GlobalTickCount());
+    SDLInput_BufferKeyEvent((SDL_Scancode)key, false, Foundation::GlobalTickCount());
+}
+
 std::array<ButtonZone, (int)TouchButton::Count> BuildButtonZones(int width, int height)
 {
     if (width <= 0)
@@ -699,6 +713,12 @@ void ClassifyFinger(Finger& finger)
         GWorld->GetUI()->GroupBarUnitsAtTouch(TouchToUiX(finger.x), TouchToUiY(finger.y)).Size() > 0)
     {
         finger.role = FingerRole::GroupSelect;
+        return;
+    }
+    if (IsGameplayScene() && GWorld && GWorld->GetUI() &&
+        GWorld->GetUI()->CommandMenuKeyAtTouch(TouchToUiX(finger.x), TouchToUiY(finger.y)) != SDL_SCANCODE_UNKNOWN)
+    {
+        finger.role = FingerRole::CommandMenuSelect;
         return;
     }
     if (!RoleActive(FingerRole::Move) && finger.x <= kMoveRegionX && finger.y >= kLowerRegionY)
@@ -1280,6 +1300,8 @@ void TouchInput_HandleFingerEvent(const SDL_TouchFingerEvent& event)
             EmitPrimaryClick();
         if (finger->role == FingerRole::GroupSelect && finger->maxTravel <= kTapMaxTravel && quickTap)
             EmitGroupSelectTap(*finger);
+        if (finger->role == FingerRole::CommandMenuSelect && finger->maxTravel <= kTapMaxTravel && quickTap)
+            EmitCommandMenuSelectTap(*finger);
         *finger = {};
         return;
     }

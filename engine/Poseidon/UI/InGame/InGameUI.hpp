@@ -82,6 +82,12 @@ public:
 	// DrawGroupInfo's dedup.
 	virtual AutoArray<int> GroupBarUnitsAtTouch(float /*normX*/, float /*normY*/) const { return AutoArray<int>(); }
 
+	// touch: returns the SDL_Scancode (as a plain int, to keep this header
+	// SDL-free) bound to the visible, enabled commanding-menu row occupying
+	// a tap at normalized screen coords (0..1), or 0 (SDL_SCANCODE_UNKNOWN)
+	// if none/the menu isn't open.
+	virtual int CommandMenuKeyAtTouch(float /*normX*/, float /*normY*/) const { return 0; }
+
 	// used to handle mouse movements
 	virtual Vector3 GetCursorDirection() const = 0;
 	virtual void SetCursorDirection( Vector3Par dir ) = 0;

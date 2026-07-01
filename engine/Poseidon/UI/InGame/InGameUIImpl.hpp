@@ -148,6 +148,18 @@ struct GroupBarTapZone
 	GroupBarTapZone(): x(0), y(0), w(0), h(0) {}
 };
 
+// One visible, enabled row in the commanding menu (_menuCurrent), captured
+// by DrawMenu as it renders - same reasoning as GroupBarTapZone: hook into
+// the actual layout (which already accounts for the menu's slide-in
+// animation via _tmPos) instead of re-deriving it.
+struct CommandMenuTapZone
+{
+	float x, y, w, h; // normalized screen rect (0..1)
+	int key; // SDL_SCANCODE this row's MenuItem is bound to (item->_key)
+
+	CommandMenuTapZone(): x(0), y(0), w(0), h(0), key(0) {}
+};
+
 struct CursorText
 {
 	RString text;
@@ -286,6 +298,7 @@ class InGameUI: public AbstractUI
 	UnitDescription _groupInfo[MAX_UNITS_PER_GROUP];
 	GroupBarTapZone _groupBarTapZones[MAX_UNITS_PER_GROUP];
 	int _groupBarTapZoneCount = 0;
+	AutoArray<CommandMenuTapZone> _commandMenuTapZones;
 
 	Poseidon::Foundation::UITime _lastGroupInfoTime;
 	Poseidon::Foundation::UITime _lastUnitInfoTime;
@@ -339,6 +352,7 @@ class InGameUI: public AbstractUI
 	RString GetActionMenuTexts() const override;
 	RString GetCommandMenuTexts() const override;
 	AutoArray<int> GroupBarUnitsAtTouch(float normX, float normY) const override;
+	int CommandMenuKeyAtTouch(float normX, float normY) const override;
 
 	void DrawHUD
 	(
