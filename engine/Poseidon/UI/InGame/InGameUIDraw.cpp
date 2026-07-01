@@ -2186,3 +2186,52 @@ void InGameUI::DrawGroupInfo(EntityAI* vehicle)
         left += width + border;
     }
 }
+
+int InGameUI::GroupBarUnitAtTouch(float normX, float normY) const
+{
+    if (!_showGroupInfo)
+    {
+        return -1;
+    }
+    AIUnit* unit = GWorld->FocusOn();
+    if (!unit)
+    {
+        return -1;
+    }
+    AISubgroup* subgroup = unit->GetSubgroup();
+    if (!subgroup)
+    {
+        return -1;
+    }
+    AIGroup* group = subgroup->GetGroup();
+    if (!group || !unit->IsGroupLeader() || group->NUnits() <= 1)
+    {
+        return -1;
+    }
+
+    // Mirrors the fixed-column layout DrawGroupInfo uses before it compacts skipped
+    // (commander/gunner dedup) slots leftward, so this can be a stateless re-derivation
+    // instead of caching per-frame draw positions.
+    const float border = 0.005f;
+    const float width = (uiW - (MAX_UNITS_PER_GROUP + 1) * border) * (1.0f / MAX_UNITS_PER_GROUP);
+    const float height = width * 2.0f / 3.0f;
+
+    if (normY < uiY + border || normY > uiY + border + height)
+    {
+        return -1;
+    }
+
+    for (int i = 0; i < MAX_UNITS_PER_GROUP; i++)
+    {
+        if (!_groupInfo[i].valid)
+        {
+            continue;
+        }
+        const float left = uiX + border + i * (width + border);
+        if (normX >= left && normX <= left + width)
+        {
+            return i + 1;
+        }
+    }
+    return -1;
+}

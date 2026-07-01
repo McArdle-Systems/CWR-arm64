@@ -12,6 +12,7 @@
 #include <Poseidon/Input/KeyInput.hpp>
 #include <Poseidon/AI/AIUnit.hpp>
 #include <Poseidon/AI/EntityAI.hpp>
+#include <Poseidon/UI/InGame/InGameUI.hpp>
 #include <Poseidon/World/Entities/Infantry/Person.hpp>
 #include <Poseidon/World/Entities/Weapons/Weapons.hpp>
 #include <Poseidon/World/World.hpp>
@@ -75,6 +76,7 @@ enum class FingerRole
     Move,
     Look,
     Button,
+    GroupSelect,
 };
 
 enum class EquipmentItem
@@ -439,6 +441,20 @@ void EmitPrimaryClick()
     SDLInput_BufferMouseButton(0, false);
 }
 
+void EmitGroupSelectTap(const Finger& finger)
+{
+    if (!GWorld || !GWorld->GetUI())
+        return;
+
+    const int unitId = GWorld->GetUI()->GroupBarUnitAtTouch(TouchToUiX(finger.x), TouchToUiY(finger.y));
+    if (unitId < 1)
+        return;
+
+    const SDL_Scancode key = (SDL_Scancode)(SDL_SCANCODE_F1 + (unitId - 1));
+    SDLInput_BufferKeyEvent(key, true, Foundation::GlobalTickCount());
+    SDLInput_BufferKeyEvent(key, false, Foundation::GlobalTickCount());
+}
+
 std::array<ButtonZone, (int)TouchButton::Count> BuildButtonZones(int width, int height)
 {
     if (width <= 0)
@@ -673,6 +689,12 @@ void ClassifyFinger(Finger& finger)
     if (IsDirectTouchScene())
     {
         finger.role = FingerRole::None;
+        return;
+    }
+    if (IsGameplayScene() && GWorld && GWorld->GetUI() &&
+        GWorld->GetUI()->GroupBarUnitAtTouch(TouchToUiX(finger.x), TouchToUiY(finger.y)) >= 0)
+    {
+        finger.role = FingerRole::GroupSelect;
         return;
     }
     if (!RoleActive(FingerRole::Move) && finger.x <= kMoveRegionX && finger.y >= kLowerRegionY)
@@ -1252,6 +1274,8 @@ void TouchInput_HandleFingerEvent(const SDL_TouchFingerEvent& event)
         const bool quickTap = Glob.uiTime - finger->startTime <= kTapMaxSeconds;
         if (finger->role == FingerRole::Look && finger->maxTravel <= kTapMaxTravel && quickTap && IsGameplayScene())
             EmitPrimaryClick();
+        if (finger->role == FingerRole::GroupSelect && finger->maxTravel <= kTapMaxTravel && quickTap)
+            EmitGroupSelectTap(*finger);
         *finger = {};
         return;
     }

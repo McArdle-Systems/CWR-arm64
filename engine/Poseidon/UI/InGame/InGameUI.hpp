@@ -74,6 +74,10 @@ public:
 	// in-game command menu visible labels, one per line (empty when closed). For tri tests.
 	virtual RString GetCommandMenuTexts() const { return RString(); }
 
+	// touch: maps a tap at normalized screen coords (0..1) to the 1-based group unit ID
+	// whose icon currently occupies that spot in the group-info bar, or -1 if none.
+	virtual int GroupBarUnitAtTouch(float /*normX*/, float /*normY*/) const { return -1; }
+
 	// used to handle mouse movements
 	virtual Vector3 GetCursorDirection() const = 0;
 	virtual void SetCursorDirection( Vector3Par dir ) = 0;

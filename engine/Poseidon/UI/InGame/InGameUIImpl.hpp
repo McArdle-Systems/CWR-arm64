@@ -324,6 +324,7 @@ class InGameUI: public AbstractUI
 
 	RString GetActionMenuTexts() const override;
 	RString GetCommandMenuTexts() const override;
+	int GroupBarUnitAtTouch(float normX, float normY) const override;
 
 	void DrawHUD
 	(
