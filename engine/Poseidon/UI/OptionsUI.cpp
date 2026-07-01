@@ -925,7 +925,52 @@ static bool FindMissionPboCallback(RStringB dir, void* ctx)
     return false;
 }
 
-RString CreateSingleMissionBank(RString filename)
+static RString GetSingleMissionBankPrefix(RString filename, RString island, bool uniquePrefix)
+{
+    const char* prefix = "missions\\__cur_sp.";
+    if (!uniquePrefix)
+    {
+        return RString(prefix) + island + RString("\\");
+    }
+
+    const char* name = filename;
+    const char* base = name;
+    for (const char* p = name; *p != 0; ++p)
+    {
+        if (*p == '\\' || *p == '/')
+        {
+            base = p + 1;
+        }
+    }
+
+    const char* ext = strrchr(base, '.');
+    const char* end = ext ? ext : base + strlen(base);
+
+    char safeName[128];
+    int out = 0;
+    for (const char* p = base; p < end && out < static_cast<int>(sizeof(safeName)) - 1; ++p)
+    {
+        char c = *p;
+        if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-')
+        {
+            safeName[out++] = c;
+        }
+        else
+        {
+            safeName[out++] = '_';
+        }
+    }
+    safeName[out] = 0;
+
+    if (out == 0)
+    {
+        snprintf(safeName, sizeof(safeName), "mission");
+    }
+
+    return RString(prefix) + RString(safeName) + RString(".") + island + RString("\\");
+}
+
+RString CreateSingleMissionBank(RString filename, bool uniquePrefix)
 {
     // suppose filename is without extension (.pbo)
 
@@ -966,7 +1011,7 @@ RString CreateSingleMissionBank(RString filename)
     int index = GFileBanks.Add();
     QFBank& bank = GFileBanks[index];
     bank.open(openPath);
-    RString str = RString(prefix) + island + RString("\\");
+    RString str = GetSingleMissionBankPrefix(filename, island, uniquePrefix);
     str.Lower();
     bank.SetPrefix(str);
     return str;
