@@ -1,5 +1,6 @@
 
 #include <Poseidon/Core/Global.hpp>
+#include <Poseidon/Input/TouchInput.hpp>
 #include <SDL3/SDL_scancode.h>
 #include <Poseidon/Core/Config/UserConfig.hpp>
 #include <Poseidon/World/World.hpp>
@@ -764,11 +765,42 @@ void InGameUI::DrawMenu()
     const int w = GLOB_ENGINE->Width2D();
     const int h = GLOB_ENGINE->Height2D();
     const float border = 0.005;
-    float size = 0.02;
+    const bool touch = TouchInput_IsEnabled();
+    // Bigger text and rows for touch - easier to read and tap on a
+    // touchscreen. Keyboard/mouse users get the original compact size,
+    // unchanged, since they don't need the extra room.
+    float size = touch ? 0.03f : 0.02f;
 
     float tmLeft = tmX + (1 - tmX) * _tmPos;
+
+    // The config's tmW/tmH is sized for the default (small) text. Growing
+    // `size` for touch without also growing the frame would overflow rows
+    // past the background box, so touch instead sizes the frame to fit its
+    // own (larger) content; keyboard keeps the exact original fixed frame.
+    float frameW = tmW;
+    float frameH = tmH;
+    if (touch)
+    {
+        int visibleCount = 0;
+        float maxRowWidth = 0;
+        for (int i = 0; i < _menuCurrent->_items.Size(); i++)
+        {
+            MenuItem* item = _menuCurrent->_items[i];
+            if (!item->_visible || item->_cmd == CMD_SEPARATOR)
+            {
+                continue;
+            }
+            visibleCount++;
+            float ow = GEngine->GetTextWidth(size, _font24, item->_char);
+            float tw = GEngine->GetTextWidth(size, _font24, item->_text);
+            saturateMax(maxRowWidth, floatMax(0.02f, ow + 0.01f) + tw);
+        }
+        frameH = floatMax(tmH, visibleCount * size + 2 * border);
+        frameW = floatMax(tmW, maxRowWidth + 2 * border);
+    }
+
     Texture* corner = GLOB_SCENE->Preloaded(Corner);
-    DrawFrame(corner, bgColor, Rect2DPixel(tmLeft * w, tmY * h, tmW * w, tmH * h));
+    DrawFrame(corner, bgColor, Rect2DPixel(tmLeft * w, tmY * h, frameW * w, frameH * h));
 
     MipInfo mip = GLOB_ENGINE->TextBank()->UseMipmap(textureDef, 0, 0);
 
@@ -776,8 +808,8 @@ void InGameUI::DrawMenu()
     width = GLOB_ENGINE->GetTextWidth(size, _font24, _menuCurrent->_text) + 2 * border;
 
     float height = size + 2 * border;
-    float left = tmLeft + tmW - border - width;
-    float top = tmY + tmH;
+    float left = tmLeft + frameW - border - width;
+    float top = tmY + frameH;
     GLOB_ENGINE->Draw2D(mip, capBgColor, Rect2DPixel(left * w, top * h, width * w, height * h));
 
     GLOB_ENGINE->DrawText(Point2DFloat(left + border, top + border), size, _font24, capFtColor, _menuCurrent->_text);
@@ -796,7 +828,7 @@ void InGameUI::DrawMenu()
         if (item->_cmd == CMD_SEPARATOR)
         {
             top += border;
-            GEngine->DrawLine(Line2DPixel((tmLeft + border) * w, top * h, (tmLeft + tmW - border) * w, top * h),
+            GEngine->DrawLine(Line2DPixel((tmLeft + border) * w, top * h, (tmLeft + frameW - border) * w, top * h),
                               menuDisabledColor, menuDisabledColor);
             top += border;
             continue;
@@ -816,7 +848,7 @@ void InGameUI::DrawMenu()
         }
 
         bool bottom = item->_key == SDL_SCANCODE_BACKSPACE;
-        float t = bottom ? tmY + tmH - border - height : top;
+        float t = bottom ? tmY + frameH - border - height : top;
 
         if (item->_enable)
         {
@@ -825,7 +857,7 @@ void InGameUI::DrawMenu()
             CommandMenuTapZone& zone = _commandMenuTapZones.Append();
             zone.x = tmLeft + border;
             zone.y = t;
-            zone.w = tmW - 2 * border;
+            zone.w = frameW - 2 * border;
             zone.h = height;
             zone.key = item->_key;
         }
