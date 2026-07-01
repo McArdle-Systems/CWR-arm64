@@ -457,17 +457,18 @@ void DisplaySingleMission::OnChangeMission()
         return;
     }
     int sel = lbox->GetCurSel();
-    if (sel < 0)
+    if (sel < 0 || sel >= lbox->GetSize())
     {
         return;
     }
 
     RString mission = lbox->GetData(sel);
     RString directory = RString("missions\\") + _directory + mission;
+    int value = lbox->GetValue(sel);
 
-    if (lbox->GetValue(sel) < 0)
+    if (value < 0)
     {
-        if (lbox->GetValue(sel) == -1)
+        if (value == -1)
         {
             RString filename = GetOverviewFile(directory + RString("\\"));
             if (filename.GetLength() > 0)
@@ -491,9 +492,9 @@ void DisplaySingleMission::OnChangeMission()
 
     RString filename;
     MissionLanguageDetector::MissionPreviewInfo preview;
-    if (lbox->GetValue(sel) == 1)
+    if (value == 1)
     {
-        RString bank = CreateSingleMissionBank(directory);
+        RString bank = CreateSingleMissionBank(directory, true);
         if (bank.GetLength() == 0)
         {
             return;
@@ -503,8 +504,9 @@ void DisplaySingleMission::OnChangeMission()
     }
     else
     {
-        preview = MissionLanguageDetector::DetectPreview(directory + RString("\\"));
-        filename = GetOverviewFile(directory + RString("\\"));
+        RString previewDirectory = directory + RString("\\");
+        preview = MissionLanguageDetector::DetectPreview(previewDirectory);
+        filename = GetOverviewFile(previewDirectory);
     }
     if (filename.GetLength() > 0 || preview.missionViewDistance.has_value() ||
         MissionLanguageDetector::FormatTextLanguages(preview.languages) != RString("-") ||

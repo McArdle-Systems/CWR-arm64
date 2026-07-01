@@ -235,7 +235,6 @@ void DisplayWizardTemplate::OnChildDestroyed(int idd, int exit)
     }
 }
 
-RString CreateSingleMissionBank(RString filename);
 
 void DisplayWizardTemplate::OnTemplateChanged()
 {
