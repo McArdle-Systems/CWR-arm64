@@ -443,6 +443,7 @@ list(APPEND POSEIDON_TEST_SOURCES
     UI/Map/test_uiMap.cpp
     UI/Map/test_map_legend_localized.cpp
     UI/Map/test_equipment_localization.cpp
+    UI/test_game_data_download_support.cpp
     UI/Controls/test_uiControls.cpp
     UI/Controls/test_progress_bar_widget.cpp
     UI/Controls/test_control_object_rotate_devmode.cpp
