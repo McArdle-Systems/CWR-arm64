@@ -66,6 +66,67 @@ std::string ZipErrorMessage(int libzipErrorCode)
     zip_error_fini(&err);
     return message;
 }
+
+// Junk that macOS's Finder "Compress" (and plain `zip -r` without -X) adds:
+// AppleDouble resource-fork shadow files and Finder's own .DS_Store, under a
+// __MACOSX/ sibling tree or alongside the real entries. Never part of the
+// game-data tree; silently skipped rather than written out.
+bool IsNoiseEntry(const std::string& normalized)
+{
+    if (normalized.rfind("__MACOSX/", 0) == 0)
+    {
+        return true;
+    }
+    const size_t lastSlash = normalized.find_last_of('/');
+    const std::string basename = lastSlash == std::string::npos ? normalized : normalized.substr(lastSlash + 1);
+    return basename == ".DS_Store" || basename.rfind("._", 0) == 0;
+}
+
+std::string FirstPathSegment(const std::string& normalized)
+{
+    const size_t slash = normalized.find('/');
+    return slash == std::string::npos ? std::string() : normalized.substr(0, slash);
+}
+
+// Archives created by zipping a folder (Finder "Compress", `zip -r name/ .`)
+// wrap every real entry in that folder's name -- if every non-noise entry
+// shares the same single top-level directory, strip it so DTA/AddOns/BIN land
+// at destDir's root as expected, matching ordinary unarchiver behavior (e.g.
+// `tar --strip-components=1`). Returns "" (nothing to strip) when entries
+// already live at the archive root, or span multiple top-level directories.
+std::string CommonTopLevelPrefix(zip_t* za, zip_int64_t numEntries)
+{
+    std::string commonTop;
+    bool sawAny = false;
+    for (zip_int64_t i = 0; i < numEntries; ++i)
+    {
+        const char* rawName = zip_get_name(za, static_cast<zip_uint64_t>(i), 0);
+        if (rawName == nullptr)
+        {
+            continue;
+        }
+        const std::string normalized = NormalizeEntryName(rawName);
+        if (IsNoiseEntry(normalized))
+        {
+            continue;
+        }
+        const std::string top = FirstPathSegment(normalized);
+        if (top.empty())
+        {
+            return {}; // a real entry already lives at the archive root
+        }
+        if (!sawAny)
+        {
+            commonTop = top;
+            sawAny = true;
+        }
+        else if (top != commonTop)
+        {
+            return {};
+        }
+    }
+    return commonTop;
+}
 } // namespace
 
 bool GameDataArchive::Unpack(const char* archivePath, const char* destDir,
@@ -103,6 +164,9 @@ bool GameDataArchive::Unpack(const char* archivePath, const char* destDir,
     fs::create_directories(root, ec);
 
     const zip_int64_t numEntries = zip_get_num_entries(za, 0);
+    const std::string topPrefix = CommonTopLevelPrefix(za, numEntries);
+    const std::string stripPrefix = topPrefix.empty() ? std::string() : topPrefix + "/";
+
     bool ok = true;
     for (zip_int64_t i = 0; ok && i < numEntries; ++i)
     {
@@ -114,16 +178,40 @@ bool GameDataArchive::Unpack(const char* archivePath, const char* destDir,
         }
 
         const std::string normalized = NormalizeEntryName(rawName);
-        if (!IsSafeEntryName(normalized))
+        if (IsNoiseEntry(normalized))
+        {
+            continue;
+        }
+
+        std::string relative = normalized;
+        if (!stripPrefix.empty())
+        {
+            if (relative.rfind(stripPrefix, 0) == 0)
+            {
+                relative = relative.substr(stripPrefix.size());
+            }
+            else
+            {
+                // The wrapping folder's own directory entry (e.g. "Combined/")
+                // -- nothing to create at destDir's root for ".".
+                continue;
+            }
+        }
+        if (relative.empty())
+        {
+            continue;
+        }
+
+        if (!IsSafeEntryName(relative))
         {
             ok = fail("archive entry escapes destination: " + std::string(rawName));
             break;
         }
 
-        const fs::path outPath = root / fs::path(normalized);
+        const fs::path outPath = root / fs::path(relative);
 
         // Directory entries end with '/' and carry no data to read.
-        if (!normalized.empty() && normalized.back() == '/')
+        if (relative.back() == '/')
         {
             fs::create_directories(outPath, ec);
             if (onProgress)

@@ -81,6 +81,80 @@ TEST_CASE("GameDataArchive::Unpack extracts nested files with their content", "[
     std::filesystem::remove_all(root, ec);
 }
 
+// Real-world case: zipping a folder (Finder "Compress", `zip -r Combined/`)
+// wraps every entry in that folder's name -- must be stripped so DTA/AddOns/
+// BIN land at destDir's root, the same way a normal unarchiver would.
+TEST_CASE("GameDataArchive::Unpack strips a single common top-level wrapping folder", "[gamedata][archive]")
+{
+    const auto root = MakeTempDir();
+    const auto zipPath = root / "fixture.zip";
+    const auto destDir = root / "unpacked";
+    MakeZip(zipPath, {
+                         {"Combined/", ""},
+                         {"Combined/BIN/CONFIG.BIN", "config-bytes"},
+                         {"Combined/DTA/Fonts.pbo", "font-bytes"},
+                         {"Combined/AddOns/O.pbo", "addon-bytes"},
+                     });
+
+    std::string error;
+    REQUIRE(GameDataArchive::Unpack(zipPath.string().c_str(), destDir.string().c_str(), {}, &error));
+    CHECK(error.empty());
+
+    CHECK(ReadFileText(destDir / "BIN" / "CONFIG.BIN") == "config-bytes");
+    CHECK(ReadFileText(destDir / "DTA" / "Fonts.pbo") == "font-bytes");
+    CHECK(ReadFileText(destDir / "AddOns" / "O.pbo") == "addon-bytes");
+    CHECK_FALSE(std::filesystem::exists(destDir / "Combined"));
+
+    std::error_code ec;
+    std::filesystem::remove_all(root, ec);
+}
+
+TEST_CASE("GameDataArchive::Unpack does not strip when entries already live at the archive root",
+         "[gamedata][archive]")
+{
+    const auto root = MakeTempDir();
+    const auto zipPath = root / "fixture.zip";
+    const auto destDir = root / "unpacked";
+    // Mixed: one entry at the root alongside a subdirectory -- no single
+    // common top-level folder, so nothing should be stripped.
+    MakeZip(zipPath, {{"BIN/CONFIG.BIN", "config-bytes"}, {"readme.txt", "hi"}});
+
+    std::string error;
+    REQUIRE(GameDataArchive::Unpack(zipPath.string().c_str(), destDir.string().c_str(), {}, &error));
+    CHECK(ReadFileText(destDir / "BIN" / "CONFIG.BIN") == "config-bytes");
+    CHECK(ReadFileText(destDir / "readme.txt") == "hi");
+
+    std::error_code ec;
+    std::filesystem::remove_all(root, ec);
+}
+
+// Finder's "Compress" and plain `zip -r` (without -X) add AppleDouble
+// resource-fork shadow files and .DS_Store -- never part of the real game
+// data, must be silently skipped rather than written out.
+TEST_CASE("GameDataArchive::Unpack skips __MACOSX and .DS_Store noise entries", "[gamedata][archive]")
+{
+    const auto root = MakeTempDir();
+    const auto zipPath = root / "fixture.zip";
+    const auto destDir = root / "unpacked";
+    MakeZip(zipPath, {
+                         {"Combined/", ""},
+                         {"Combined/.DS_Store", "junk"},
+                         {"Combined/BIN/CONFIG.BIN", "config-bytes"},
+                         {"__MACOSX/Combined/._BIN", "resource-fork-junk"},
+                     });
+
+    std::string error;
+    REQUIRE(GameDataArchive::Unpack(zipPath.string().c_str(), destDir.string().c_str(), {}, &error));
+    CHECK(error.empty());
+
+    CHECK(ReadFileText(destDir / "BIN" / "CONFIG.BIN") == "config-bytes");
+    CHECK_FALSE(std::filesystem::exists(destDir / ".DS_Store"));
+    CHECK_FALSE(std::filesystem::exists(destDir / "__MACOSX"));
+
+    std::error_code ec;
+    std::filesystem::remove_all(root, ec);
+}
+
 TEST_CASE("GameDataArchive::Unpack materializes explicit directory entries", "[gamedata][archive]")
 {
     const auto root = MakeTempDir();
