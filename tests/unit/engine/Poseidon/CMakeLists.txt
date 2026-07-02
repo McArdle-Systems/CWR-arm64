@@ -496,6 +496,7 @@ list(APPEND POSEIDON_TEST_SOURCES
     Core/test_mod_archive.cpp
     Core/test_mod_collection.cpp
     Core/test_mod_install.cpp
+    Core/test_game_data_install.cpp
     Core/test_mod_selection.cpp
     Core/test_server_mod_resolve.cpp
     Core/test_pending_connect.cpp
