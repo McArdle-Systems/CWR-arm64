@@ -766,10 +766,12 @@ void InGameUI::DrawMenu()
     const int h = GLOB_ENGINE->Height2D();
     const float border = 0.005;
     const bool touch = TouchInput_IsEnabled();
-    // Bigger text and rows for touch - easier to read and tap on a
+    // Bigger text and padded rows for touch - easier to read and tap on a
     // touchscreen. Keyboard/mouse users get the original compact size,
     // unchanged, since they don't need the extra room.
-    float size = touch ? 0.03f : 0.02f;
+    const float size = touch ? 0.036f : 0.02f;
+    const float rowPadY = touch ? 0.006f : 0.0f;
+    const float rowHeight = size + 2 * rowPadY;
 
     float tmLeft = tmX + (1 - tmX) * _tmPos;
 
@@ -782,12 +784,18 @@ void InGameUI::DrawMenu()
     if (touch)
     {
         int visibleCount = 0;
+        int separatorCount = 0;
         float maxRowWidth = 0;
         for (int i = 0; i < _menuCurrent->_items.Size(); i++)
         {
             MenuItem* item = _menuCurrent->_items[i];
-            if (!item->_visible || item->_cmd == CMD_SEPARATOR)
+            if (!item->_visible)
             {
+                continue;
+            }
+            if (item->_cmd == CMD_SEPARATOR)
+            {
+                separatorCount++;
                 continue;
             }
             visibleCount++;
@@ -795,7 +803,7 @@ void InGameUI::DrawMenu()
             float tw = GEngine->GetTextWidth(size, _font24, item->_text);
             saturateMax(maxRowWidth, floatMax(0.02f, ow + 0.01f) + tw);
         }
-        frameH = floatMax(tmH, visibleCount * size + 2 * border);
+        frameH = floatMax(tmH, visibleCount * rowHeight + separatorCount * 2 * border + 2 * border);
         frameW = floatMax(tmW, maxRowWidth + 2 * border);
     }
 
@@ -815,7 +823,7 @@ void InGameUI::DrawMenu()
     GLOB_ENGINE->DrawText(Point2DFloat(left + border, top + border), size, _font24, capFtColor, _menuCurrent->_text);
 
     top = tmY + border;
-    height = size;
+    height = rowHeight;
     PackedColor color;
     for (int i = 0; i < _menuCurrent->_items.Size(); i++)
     {
@@ -858,14 +866,15 @@ void InGameUI::DrawMenu()
             zone.x = tmLeft + border;
             zone.y = t;
             zone.w = frameW - 2 * border;
-            zone.h = height;
+            zone.h = rowHeight;
             zone.key = item->_key;
         }
 
-        GLOB_ENGINE->DrawText(Point2DFloat(tmLeft + border, t), size, _font24, color, item->_char);
+        const float textTop = t + rowPadY;
+        GLOB_ENGINE->DrawText(Point2DFloat(tmLeft + border, textTop), size, _font24, color, item->_char);
         float ow = GEngine->GetTextWidth(size, _font24, item->_char);
         left = tmLeft + floatMax(0.02, ow + 0.01);
-        GLOB_ENGINE->DrawText(Point2DFloat(left, t), size, _font24, color, item->_text);
+        GLOB_ENGINE->DrawText(Point2DFloat(left, textTop), size, _font24, color, item->_text);
         if (!bottom)
         {
             top += height;
