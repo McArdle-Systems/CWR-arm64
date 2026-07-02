@@ -26,8 +26,16 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 180
+    # The macOS-labeled matrix entries (macOS + iOS Device) share a single
+    # physical self-hosted runner, so they need to queue behind each other --
+    # but the group must vary per *workflow run* (github.run_id), not be a
+    # single global literal, or a newer run's queued job cancels an older
+    # run's still-queued job from an entirely unrelated PR/branch/push (only
+    # one pending job per concurrency group is ever kept, even with
+    # cancel-in-progress: false -- that only protects an already-*running*
+    # job, not one still waiting for the runner).
     concurrency:
-      group: ${{ contains(matrix.os, 'macOS') && 'cwr-arm64-self-hosted-macos' || format('cwr-arm64-{0}-{1}', github.run_id, matrix.name) }}
+      group: ${{ contains(matrix.os, 'macOS') && format('cwr-arm64-self-hosted-macos-{0}', github.run_id) || format('cwr-arm64-{0}-{1}', github.run_id, matrix.name) }}
       cancel-in-progress: false
 
     strategy:
