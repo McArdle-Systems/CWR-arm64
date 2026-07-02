@@ -132,7 +132,7 @@ if(POSEIDON_TARGET_IOS)
     )
 endif()
 
-if(POSEIDON_TARGET_IOS)
+if(POSEIDON_TARGET_IOS AND POSEIDON_IOS_BUNDLE_GAME_DATA)
     # Bundle the game's data files (DTA/AddOns/fonts/etc.) straight into the
     # .app, preserving their relative directory layout, so the app is
     # self-contained on install -- no manual `devicectl device copy` step
@@ -142,6 +142,10 @@ if(POSEIDON_TARGET_IOS)
     # bundle root -- so these land exactly where the runtime expects them,
     # with no extra path segment to account for (see WinMain.cpp's iOS
     # branch, which chdir()s there when no explicit -C is given).
+    #
+    # OFF (POSEIDON_IOS_BUNDLE_GAME_DATA=OFF) is the distributable/App Store
+    # configuration -- this licensed data can't ship in the bundle there, so
+    # WinMain.cpp runs the on-device acquisition gate instead.
     file(GLOB_RECURSE POSEIDON_GAME_ASSET_FILES
         RELATIVE "${CMAKE_SOURCE_DIR}/packages/Combined"
         "${CMAKE_SOURCE_DIR}/packages/Combined/*"
