@@ -30,6 +30,7 @@ int PASCAL WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR szCmdLine, int sw)
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_hints.h>
+#include <Poseidon/UI/Controls/IosBootModalSpike.hpp>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -97,6 +98,15 @@ int main(int argc, char* argv[])
         SDL_free(prefPath);
         RedirectStdIOToFile(iosPrefPath);
     }
+
+    // M0 de-risking spike for the iOS game-data acquisition gate (see
+    // engine/Poseidon/UI/Controls/IosBootModalSpike.hpp): proves a blocking
+    // UIKit modal can be shown and pumped to completion here, before SDL
+    // creates any window, so the real gate (RunIosGameDataGate, landing in a
+    // later milestone) can safely do the same thing for real. No-op today --
+    // data bundling and the -C injection below are unchanged.
+    Poseidon::RunIosBootModalSpike();
+
     if (!hasSplashArg)
         iosArgv.push_back(const_cast<char*>("--no-splash"));
     if (!hasFpsArg)
