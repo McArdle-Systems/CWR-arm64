@@ -213,7 +213,7 @@ class MemHeap: public RefCount
 		BusyBlock *next=_blockList.Advance(cur);
 		char *thisBeg=cur->_memory;
 		char *nextBeg=NotEndOf(BusyLink,next,_blockList) ? next->_memory : (char *)_memBlocks.Data()+_memBlocks.Size();
-		return nextBeg-thisBeg;
+		return static_cast<int>(nextBeg-thisBeg);
 	}
 
 	void *Memory() const {return _memBlocks.Data();}
@@ -234,7 +234,7 @@ class MemHeap: public RefCount
 	void *operator new( size_t size )
 	{
 		void *ret=malloc(size);
-		if( !ret ) MemoryErrorMalloc(size);
+		if( !ret ) MemoryErrorMalloc(static_cast<int>(size));
 		return ret;
 	}
 	void operator delete( void *mem ) {free(mem);}
@@ -272,13 +272,13 @@ class MemHeapLocked: private MemHeap
 	void *operator new( size_t size )
 	{
 		void *ret=malloc(size);
-		if( !ret ) MemoryErrorMalloc(size);
+		if( !ret ) MemoryErrorMalloc(static_cast<int>(size));
 		return ret;
 	}
 	void *operator new( size_t size, const char *file, int line )
 	{
 		void *ret=malloc(size);
-		if( !ret ) MemoryErrorMalloc(size);
+		if( !ret ) MemoryErrorMalloc(static_cast<int>(size));
 		return ret;
 	}
 	void operator delete( void *mem ) {free(mem);}

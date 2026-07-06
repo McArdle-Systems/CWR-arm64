@@ -253,7 +253,7 @@ void Landscape::DrawMesh(Scene& scene, TLVertexTable& table, const Shape& vMesh,
 
 static int SortByTextureR(const Poly& p0, const Poly& p1)
 {
-    return (char*)p0.GetTexture() - (char*)p1.GetTexture();
+    return static_cast<int>((char*)p0.GetTexture() - (char*)p1.GetTexture());
 }
 
 const int MaxVertexCanditates = 6; // vertex may be shared between six faces

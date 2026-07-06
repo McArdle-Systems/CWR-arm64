@@ -104,7 +104,7 @@ int PacPalette::Skip(QIStream& in)
         goto Error;
     } // mip-map list terminator
 
-    in.seekg(3 * C, QIOS::cur);
+    in.seekg(static_cast<int>(3 * C), QIOS::cur);
     if (in.eof() || in.fail())
     {
         goto Error;
@@ -216,7 +216,7 @@ int PacPalette::Load(QIStream& in, int* startOffsets, int maxStartOffsets)
         goto Error;
     } // mip-map list terminator
 
-    _nColors = C;
+    _nColors = static_cast<int>(C);
 
     if (!_palette && _nColors > 0)
     {
@@ -568,7 +568,7 @@ int PacLevelMem::LoadPacP8(QIStream& in, void* mem, const PacPalette* pal) const
                             *dst++ = (byte)v;
                             if (--lineCnt == 0)
                             {
-                                dst += lineAlign, lineCnt = w;
+                                dst += lineAlign, lineCnt = static_cast<int>(w);
                             }
                         }
                     }
@@ -583,7 +583,7 @@ int PacLevelMem::LoadPacP8(QIStream& in, void* mem, const PacPalette* pal) const
                         *dst++ = (byte)v;
                         if (--lineCnt == 0)
                         {
-                            dst += lineAlign, lineCnt = w;
+                            dst += lineAlign, lineCnt = static_cast<int>(w);
                         }
                     }
                 }
@@ -674,8 +674,8 @@ int PacLevelMem::LoadPacARGB1555(QIStream& in, void* mem, const PacPalette* pal)
             PoseidonAssert(_w == w);
             PoseidonAssert(_h == h);
 
-            int lineCnt = w;
-            int lineAlign = _pitch - w * 2;
+            int lineCnt = static_cast<int>(w);
+            int lineAlign = static_cast<int>(_pitch - w * 2);
 
             word* B = (word*)mem;
             while (W > 0)
@@ -703,7 +703,7 @@ int PacLevelMem::LoadPacARGB1555(QIStream& in, void* mem, const PacPalette* pal)
                             *B++ = vv;
                             if (--lineCnt == 0)
                             {
-                                B = (word*)((byte*)B + lineAlign), lineCnt = w;
+                                B = (word*)((byte*)B + lineAlign), lineCnt = static_cast<int>(w);
                             }
                         }
                     }
@@ -720,7 +720,7 @@ int PacLevelMem::LoadPacARGB1555(QIStream& in, void* mem, const PacPalette* pal)
                         *B++ = vv;
                         if (--lineCnt == 0)
                         {
-                            B = (word*)((byte*)B + lineAlign), lineCnt = w;
+                            B = (word*)((byte*)B + lineAlign), lineCnt = static_cast<int>(w);
                         }
                     }
                 }
@@ -809,8 +809,8 @@ int PacLevelMem::LoadPacRGB565(QIStream& in, void* mem, const PacPalette* pal) c
             PoseidonAssert(_w == w);
             PoseidonAssert(_h == h);
 
-            int lineCnt = w;
-            int lineAlign = _pitch - w * 2;
+            int lineCnt = static_cast<int>(w);
+            int lineAlign = static_cast<int>(_pitch - w * 2);
 
             word* B = (word*)mem;
             while (W > 0)
@@ -838,7 +838,7 @@ int PacLevelMem::LoadPacRGB565(QIStream& in, void* mem, const PacPalette* pal) c
                             *B++ = vv;
                             if (--lineCnt == 0)
                             {
-                                B = (word*)((byte*)B + lineAlign), lineCnt = w;
+                                B = (word*)((byte*)B + lineAlign), lineCnt = static_cast<int>(w);
                             }
                         }
                     }
@@ -855,7 +855,7 @@ int PacLevelMem::LoadPacRGB565(QIStream& in, void* mem, const PacPalette* pal) c
                         *B++ = vv;
                         if (--lineCnt == 0)
                         {
-                            B = (word*)((byte*)B + lineAlign), lineCnt = w;
+                            B = (word*)((byte*)B + lineAlign), lineCnt = static_cast<int>(w);
                         }
                     }
                 }
@@ -1133,7 +1133,7 @@ int PacLevelMem::LoadPaaDXT(QIStream& in, void* mem, const PacPalette* pal) cons
 
     if (ENUM_CAST(PacFormat, _dFormat) == ENUM_CAST(PacFormat, _sFormat))
     {
-        in.read(mem, dSize);
+        in.read(mem, static_cast<int>(dSize));
         if (in.fail())
         {
             Fail("Compressed Read error");
@@ -1144,8 +1144,8 @@ int PacLevelMem::LoadPaaDXT(QIStream& in, void* mem, const PacPalette* pal) cons
     {
         // load to temporary buffer and decompress
         AUTO_STATIC_ARRAY(char, temp, 256 * 256);
-        temp.Resize(dSize);
-        in.read(temp.Data(), dSize);
+        temp.Resize(static_cast<int>(dSize));
+        in.read(temp.Data(), static_cast<int>(dSize));
         // decompress from temp to mem
         DecompressDXT1(mem, temp.Data(), _w, _h);
     }
@@ -1211,13 +1211,13 @@ int PacLevelMem::LoadPaa(QIStream& in, void* mem, const PacPalette* pal) const
             PoseidonAssert(_h == h);
             if (_dFormat == PacARGB8888)
             {
-                in.read(static_cast<char*>(mem), dSize);
+                in.read(static_cast<char*>(mem), static_cast<int>(dSize));
                 ret = in.fail() ? -1 : 0;
             }
             else
             {
                 std::vector<char> tmp(dSize);
-                in.read(tmp.data(), dSize);
+                in.read(tmp.data(), static_cast<int>(dSize));
                 if (in.fail())
                 {
                     ret = -1;

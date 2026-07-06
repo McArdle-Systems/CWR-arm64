@@ -360,7 +360,7 @@ void ChatList::OnDraw()
                     {
                         p = q;
                     }
-                    lines.Add(p - buffer);
+                    lines.Add(static_cast<int>(p - buffer));
                     word = nullptr;
                     width = 0;
                 }

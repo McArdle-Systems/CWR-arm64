@@ -108,7 +108,7 @@ void GameState::SetError(EvalError error, ...) const
     va_end(va);
 
     _e->_errorText = formated.cstr();
-    _e->_errorCarretPos = _e->_pos - _e->_pos0;
+    _e->_errorCarretPos = static_cast<int>(_e->_pos - _e->_pos0);
 
 #endif
 }
@@ -236,7 +236,7 @@ GameValue GameState::Const() const
                 _e->_pos++;
             }
             // string from start to _e->_pos
-            string = string + RString(start, _e->_pos - start);
+            string = string + RString(start, static_cast<int>(_e->_pos - start));
             // check if another quote mark is encountered
             // if yes, append it, and continue parsing, otherwise we are done
             ++_e->_pos;
@@ -299,7 +299,7 @@ GameValue GameState::Const() const
         if (closed)
         {
             _e->_pos = end + 1;
-            return RString(start, end - start);
+            return RString(start, static_cast<int>(end - start));
         }
         else
         {
@@ -1469,7 +1469,7 @@ void GameState::VyhCast(int Prio) const
 
 inline int CMP(const char* Ps, const char* Ps1)
 {
-    return strnicmp(Ps, Ps1, strlen(Ps1));
+    return strnicmp(Ps, Ps1, static_cast<int>(strlen(Ps1)));
 }
 
 inline int CMPN(const char* Ps, const char* Ps1, int n)
@@ -2998,9 +2998,9 @@ void GameState::ShowError() const
         {
             end = _e->_pos + 256;
         }
-        RString expr(start, end - start);
-        RString before(start, _e->_pos - start);
-        RString after(_e->_pos, end - _e->_pos);
+        RString expr(start, static_cast<int>(end - start));
+        RString before(start, static_cast<int>(_e->_pos - start));
+        RString after(_e->_pos, static_cast<int>(end - _e->_pos));
         RString buf = before + RString("|#|") + after;
 
         DefaultInfoFunctions()->DisplayErrorMessage(buf, _e->_errorText);

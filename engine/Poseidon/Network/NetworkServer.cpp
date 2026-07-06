@@ -215,7 +215,7 @@ void SaveBanList(RString filename, const FindArray<__int64>& list)
     {
         char buffer[32];
         _i64toa(list[i], buffer, 10);
-        f.write(buffer, strlen(buffer));
+        f.write(buffer, static_cast<int>(strlen(buffer)));
         f.put('\r');
         f.put('\n');
     }
@@ -259,7 +259,7 @@ bool IsUpdateTransport(NetworkMessageType type)
 QFBank* FindBank(const char* prefix)
 {
     std::string normalized = platformPath(std::string(prefix));
-    int prefixLen = normalized.size();
+    int prefixLen = static_cast<int>(normalized.size());
     for (int i = 0; i < GFileBanks.Size(); i++)
     {
         QFBank& bank = GFileBanks[i];

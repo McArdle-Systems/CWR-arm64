@@ -311,7 +311,7 @@ void HarnessServer::HandleClient(SOCKET_T clientSock)
         auto events = _queue.DrainEvents();
         for (const auto& evt : events)
         {
-            int sent = send(clientSock, evt.json.c_str(), static_cast<int>(evt.json.size()), 0);
+            int sent = static_cast<int>(send(clientSock, evt.json.c_str(), static_cast<int>(evt.json.size()), 0));
             if (sent == HARNESS_SOCKET_ERROR)
             {
                 LOG_DEBUG(Core, "[Harness] Send event failed, client gone");
@@ -337,7 +337,7 @@ void HarnessServer::HandleClient(SOCKET_T clientSock)
         if (sel == 0)
             continue; // timeout — loop back to drain events
 
-        int bytes = recv(clientSock, recvBuf, sizeof(recvBuf) - 1, 0);
+        int bytes = static_cast<int>(recv(clientSock, recvBuf, sizeof(recvBuf) - 1, 0));
         if (bytes <= 0)
         {
             LOG_DEBUG(Core, "[Harness] Client connection closed (recv={})", bytes);
@@ -428,7 +428,7 @@ void HarnessServer::HandleClient(SOCKET_T clientSock)
                 auto waitEvents = _queue.DrainEvents();
                 for (const auto& evt : waitEvents)
                 {
-                    int sent = send(clientSock, evt.json.c_str(), static_cast<int>(evt.json.size()), 0);
+                    int sent = static_cast<int>(send(clientSock, evt.json.c_str(), static_cast<int>(evt.json.size()), 0));
                     if (sent == HARNESS_SOCKET_ERROR)
                         return;
                 }
@@ -436,7 +436,7 @@ void HarnessServer::HandleClient(SOCKET_T clientSock)
                 HarnessResponse resp;
                 if (_queue.PopResponse(resp) && resp.id == cmd.id)
                 {
-                    int sent = send(clientSock, resp.json.c_str(), static_cast<int>(resp.json.size()), 0);
+                    int sent = static_cast<int>(send(clientSock, resp.json.c_str(), static_cast<int>(resp.json.size()), 0));
                     if (sent == HARNESS_SOCKET_ERROR)
                         return;
                     gotResponse = true;

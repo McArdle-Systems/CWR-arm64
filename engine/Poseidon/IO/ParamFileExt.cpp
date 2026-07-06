@@ -144,8 +144,9 @@ RString GetDefaultName(RString baseName, const char* dDir, const char* dExt)
         // become "sound\sound/s01r01.ogg" and fail to resolve.
         const size_t dDirLen = strlen(dDir);
         const bool alreadyPrefixed =
-            dDirLen > 0 && (_strnicmp(name, dDir, dDirLen) == 0 ||
-                            (dDir[dDirLen - 1] == '\\' && _strnicmp(name, dDir, dDirLen - 1) == 0 &&
+            dDirLen > 0 && (_strnicmp(name, dDir, static_cast<int>(dDirLen)) == 0 ||
+                            (dDir[dDirLen - 1] == '\\' &&
+                             _strnicmp(name, dDir, static_cast<int>(dDirLen - 1)) == 0 &&
                              (name[dDirLen - 1] == '/' || name[dDirLen - 1] == '\\')));
         if (!alreadyPrefixed)
         {
@@ -256,7 +257,7 @@ static RString PathFirstFolder(const char* path)
     {
         return "";
     }
-    return RString(path, next - path);
+    return RString(path, static_cast<int>(next - path));
 }
 
 } // namespace Poseidon

@@ -69,8 +69,8 @@ bool isSuffix(const char* str, const char* suffix)
         return true;
     if (!str || !str[0])
         return false;
-    int strLen = strlen(str);
-    int suffLen = strlen(suffix);
+    int strLen = static_cast<int>(strlen(str));
+    int suffLen = static_cast<int>(strlen(suffix));
     if (strLen < suffLen)
         return false;
     return (!strcmp(str + strLen - suffLen, suffix));

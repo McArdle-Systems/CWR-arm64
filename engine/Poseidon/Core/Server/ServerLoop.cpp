@@ -88,7 +88,7 @@ bool AppServerLoop()
     lastTime = actTime;
 
     static DWORD lastSysTime;
-    DWORD sysTime = ::GetTickCount();
+    DWORD sysTime = static_cast<DWORD>(::GetTickCount());
     DWORD timeDelta = sysTime - lastSysTime;
     lastSysTime = sysTime;
     saturateMin(deltaT, 0.3);

@@ -1699,7 +1699,7 @@ void DisplayMultiplayer::SeedTestSessions(int count)
         dst.guid = buf;
         snprintf(buf, sizeof(buf), "Test Server %d", i + 1);
         dst.name = buf;
-        dst.lastTime = GetTickCount();
+        dst.lastTime = static_cast<DWORD>(GetTickCount());
         dst.actualVersion = 199;
         dst.requiredVersion = 199;
         dst.password = (i % 3 == 0);
@@ -2765,7 +2765,7 @@ void DisplayRemoteMissions::UpdateMissions(RString filename)
         {
             continue;
         }
-        int index = lbox->AddString(name.Substring(0, end - beg));
+        int index = lbox->AddString(name.Substring(0, static_cast<int>(end - beg)));
         lbox->SetData(index, name);
     }
 

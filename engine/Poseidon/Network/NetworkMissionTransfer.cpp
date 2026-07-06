@@ -61,7 +61,7 @@ RString BuildNetworkMissionTransferBankPath(const char* transferPath)
         return RString(transferPath);
     }
 
-    return RString(transferPath).Substring(0, ext - transferPath);
+    return RString(transferPath).Substring(0, static_cast<int>(ext - transferPath));
 }
 
 RString BuildNetworkMissionTransferFailureMessage(const char* format, const char* playerName, const char* transferPath)

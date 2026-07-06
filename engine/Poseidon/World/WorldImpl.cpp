@@ -1091,7 +1091,7 @@ void World::AdjustSubdivisionGrid(float gridSize)
 
 void World::AdjustSubdivision(GameMode mode)
 {
-    DWORD tSub = GetTickCount();
+    DWORD tSub = static_cast<DWORD>(GetTickCount());
     float gridSize = GScene->GetPreferredTerrainGrid();
     float viewDist = GScene->GetPreferredViewDistance();
     // MP requires all clients use the same grid size.
@@ -1157,7 +1157,7 @@ bool World::CheckAddon(const ParamEntry& entry)
 
 void World::SwitchLandscape(const char* name)
 {
-    DWORD t0 = GetTickCount();
+    DWORD t0 = static_cast<DWORD>(GetTickCount());
     GSoundScene->Reset();
     GDebugger.NextAliveExpected(15 * 60 * 1000);
     VehicleTypes.LockAllTypes();
@@ -1193,15 +1193,15 @@ void World::SwitchLandscape(const char* name)
 
         const ParamEntry& cls = Pars >> "CfgWorlds" >> Glob.header.worldname;
         float grid = cls >> "LandGrid";
-        DWORD tLoad = GetTickCount();
+        DWORD tLoad = static_cast<DWORD>(GetTickCount());
         land->LoadData(name, grid);
         LOG_DEBUG(Core, "LOAD: LoadData {}ms", GetTickCount() - tLoad);
 
-        DWORD tCfg = GetTickCount();
+        DWORD tCfg = static_cast<DWORD>(GetTickCount());
         ParseCfgWorld();
         LOG_DEBUG(Core, "LOAD: ParseCfgWorld {}ms", GetTickCount() - tCfg);
 
-        DWORD tInit = GetTickCount();
+        DWORD tInit = static_cast<DWORD>(GetTickCount());
         InitLandscape(land);
         land->RebuildIDCache();
         LOG_DEBUG(Core, "LOAD: InitLandscape+RebuildIDCache {}ms", GetTickCount() - tInit);
@@ -1227,7 +1227,7 @@ void World::SwitchLandscape(const char* name)
     GLandscape->Simulate(0);
     GScene->ResetFog();
 
-    DWORD tFlush = GetTickCount();
+    DWORD tFlush = static_cast<DWORD>(GetTickCount());
     _engine->TextBank()->FlushTextures();
     GetNetworkManager().CleanUpMemory();
     MemoryCleanUp();
@@ -1736,11 +1736,11 @@ LSError World::Serialize(ParamArchive& ar, int message)
         PARAM_CHECK(ar.SerializeArray("addons", addons, 1))
         ActivateAddons(addons);
     }
-    DWORD tLand = GetTickCount();
+    DWORD tLand = static_cast<DWORD>(GetTickCount());
     PARAM_CHECK(ar.Serialize("Landscape", *land, 1))
     LOG_DEBUG(Core, "LOAD: Serialize Landscape {}ms", GetTickCount() - tLand);
 
-    DWORD tVeh = GetTickCount();
+    DWORD tVeh = static_cast<DWORD>(GetTickCount());
     PARAM_CHECK(SerializeVehicles(ar))
     LOG_DEBUG(Core, "LOAD: SerializeVehicles {}ms", GetTickCount() - tVeh);
     PARAM_CHECK(ar.Serialize("SensorList", _sensorList, 1))
@@ -1835,7 +1835,7 @@ LSError World::Serialize(ParamArchive& ar, int message)
     }
     else
     {
-        DWORD tFinal = GetTickCount();
+        DWORD tFinal = static_cast<DWORD>(GetTickCount());
         _camType = _camTypeMain = CamInternal;
         InitCameraPars();
 
@@ -1849,11 +1849,11 @@ LSError World::Serialize(ParamArchive& ar, int message)
 
         VehicleTypes.UnlockAllTypes();
         GEngine->TextBank()->UnlockAllTextures();
-        DWORD tPreload = GetTickCount();
+        DWORD tPreload = static_cast<DWORD>(GetTickCount());
         GEngine->TextBank()->Preload();
         LOG_DEBUG(Core, "LOAD: TextBank Preload {}ms", GetTickCount() - tPreload);
 
-        DWORD tOpt = GetTickCount();
+        DWORD tOpt = static_cast<DWORD>(GetTickCount());
         Shapes.OptimizeAll();
         LOG_DEBUG(Core, "LOAD: Shapes.OptimizeAll {}ms", GetTickCount() - tOpt);
 

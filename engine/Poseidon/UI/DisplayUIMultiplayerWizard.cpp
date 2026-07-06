@@ -304,7 +304,7 @@ CStaticMapWizard::CStaticMapWizard(ControlsContainer* parent, int idc, const Par
 static const char* WizVarPrefix = "WIZVAR_";
 static bool HasWizVarPrefix(const char* name)
 {
-    return strnicmp(name, WizVarPrefix, strlen(WizVarPrefix)) == 0;
+    return strnicmp(name, WizVarPrefix, static_cast<int>(strlen(WizVarPrefix))) == 0;
 }
 
 SignInfo CStaticMapWizard::FindSign(float x, float y)

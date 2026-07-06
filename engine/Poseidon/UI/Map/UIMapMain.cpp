@@ -2019,7 +2019,7 @@ bool CStaticMapMain::OnKeyDown(unsigned nChar, unsigned nRepCnt, unsigned nFlags
             {
                 const char* userDefined = "_user_defined";
                 RString name = markersMap[_infoMove._index].name;
-                if (strnicmp(name, userDefined, strlen(userDefined)) == 0)
+                if (strnicmp(name, userDefined, static_cast<int>(strlen(userDefined))) == 0)
                 {
                     GetNetworkManager().MarkerDelete(name);
                     markersMap.Delete(_infoMove._index);

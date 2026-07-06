@@ -474,7 +474,7 @@ void CameraVehicle::Simulate(float deltaT, SimulationImportance prec)
                 struct tm* lt = localtime(&tb);
 
                 snprintf(buf, sizeof(buf), ";=== %d:%02d:%02d\r\n", lt->tm_hour, lt->tm_min, lt->tm_sec);
-                f.write(buf, strlen(buf));
+                f.write(buf, static_cast<int>(strlen(buf)));
             }
 
             if (_target._target)
@@ -489,7 +489,7 @@ void CameraVehicle::Simulate(float deltaT, SimulationImportance prec)
                     RString symName = _target._target->GetDebugName();
                     snprintf(buf, sizeof(buf), "%s camSetTarget '%s'\r\n", myName, (const char*)symName);
                 }
-                f.write(buf, strlen(buf));
+                f.write(buf, static_cast<int>(strlen(buf)));
             }
             else
             {
@@ -498,7 +498,7 @@ void CameraVehicle::Simulate(float deltaT, SimulationImportance prec)
                     float surfY = GLandscape->SurfaceYAboveWater(_target._pos[0], _target._pos[2]);
                     snprintf(buf, sizeof(buf), "%s camSetTarget [%.2f,%.2f,%.2f]\r\n", myName, _target._pos[0],
                              _target._pos[2], _target._pos[1] - surfY);
-                    f.write(buf, strlen(buf));
+                    f.write(buf, static_cast<int>(strlen(buf)));
                 }
             }
             if (_target._target && input.IsKeyDown(SDL_SCANCODE_LSHIFT))
@@ -506,28 +506,28 @@ void CameraVehicle::Simulate(float deltaT, SimulationImportance prec)
                 Vector3 relPos = _target.PositionAbsToRel(Position());
                 snprintf(buf, sizeof(buf), "%s camSetRelPos [%.2f,%.2f,%.2f]\r\n", myName, relPos[0], relPos[2],
                          relPos[1]);
-                f.write(buf, strlen(buf));
+                f.write(buf, static_cast<int>(strlen(buf)));
             }
             else
             {
                 float surfY = GLandscape->SurfaceYAboveWater(Position()[0], Position()[2]);
                 snprintf(buf, sizeof(buf), "%s camSetPos [%.2f,%.2f,%.2f]\r\n", myName, Position()[0], Position()[2],
                          Position()[1] - surfY);
-                f.write(buf, strlen(buf));
+                f.write(buf, static_cast<int>(strlen(buf)));
             }
             {
                 snprintf(buf, sizeof(buf), "%s camSetFOV %.3f\r\n", myName, _lastFov);
-                f.write(buf, strlen(buf));
+                f.write(buf, static_cast<int>(strlen(buf)));
             }
 
             {
                 snprintf(buf, sizeof(buf), "%s camCommit 0\r\n", myName);
-                f.write(buf, strlen(buf));
+                f.write(buf, static_cast<int>(strlen(buf)));
             }
 
             {
                 snprintf(buf, sizeof(buf), "@camCommitted _camera\r\n");
-                f.write(buf, strlen(buf));
+                f.write(buf, static_cast<int>(strlen(buf)));
             }
 
             LOG_DEBUG(Input, "Camera: clipboard buffer size={}", f.pcount());

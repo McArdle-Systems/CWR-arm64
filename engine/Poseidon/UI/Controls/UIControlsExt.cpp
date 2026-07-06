@@ -329,13 +329,13 @@ HTMLField* CHTMLContainer::AddImage(int section, RString image, HTMLAlign align,
     const char* q = strchr(image, '?');
     if (q)
     {
-        fld.condition = image.Substring(0, q - image);
+        fld.condition = image.Substring(0, static_cast<int>(q - image));
         RString image1 = q + 1;
         const char* p = strchr(image1, ':');
         if (p)
         {
             RString image2 = p + 1;
-            image1 = image1.Substring(0, p - image1);
+            image1 = image1.Substring(0, static_cast<int>(p - image1));
 
             if (image2[0] == '\\')
             {

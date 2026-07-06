@@ -110,7 +110,8 @@ bool NetworkClient::PrepareGame()
         const char* ext = strrchr(_missionHeader.fileName, '.');
         if (ext)
         {
-            Glob.header.filenameReal = _missionHeader.fileName.Substring(0, ext - (const char*)_missionHeader.fileName);
+            Glob.header.filenameReal =
+                _missionHeader.fileName.Substring(0, static_cast<int>(ext - (const char*)_missionHeader.fileName));
         }
         else
         {
@@ -1171,7 +1172,7 @@ bool NetworkClient::ProcessCommand(RString command)
     beg++;
 
     const char* end = strchr(beg, ' ');
-    int len = end ? end - beg : strlen(beg);
+    int len = end ? static_cast<int>(end - beg) : static_cast<int>(strlen(beg));
     NetworkCommandType type = FindCommandType(beg, len);
     beg += len;
     while (*beg == ' ')
@@ -1325,7 +1326,7 @@ bool NetworkClient::ProcessCommand(RString command)
         case CMDVote:
         {
             end = strchr(beg, ' ');
-            len = end ? end - beg : strlen(beg);
+            len = end ? static_cast<int>(end - beg) : static_cast<int>(strlen(beg));
             type = FindCommandType(beg, len);
             beg += len;
             while (*beg == ' ')

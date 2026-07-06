@@ -447,7 +447,7 @@ void World::InitCenter(AICenterMode mode, AICenter* cnt)
 }
 bool World::InitVehicles(GameMode gameMode, ArcadeTemplate& t)
 {
-    DWORD tInitVehicles = GetTickCount();
+    DWORD tInitVehicles = static_cast<DWORD>(GetTickCount());
     ProgressReset();
     _firstFrame = true;
 
@@ -566,7 +566,7 @@ bool World::InitVehicles(GameMode gameMode, ArcadeTemplate& t)
     _guerrilaCenter.Free();
     _logicCenter.Free();
 
-    DWORD tCenters = GetTickCount();
+    DWORD tCenters = static_cast<DWORD>(GetTickCount());
     _eastCenter = ::CreateCenter(t, TEast, mode);
     ProgressRefresh();
     PoseidonAssert(CheckVehicleStructure());
@@ -710,10 +710,10 @@ bool World::InitVehicles(GameMode gameMode, ArcadeTemplate& t)
     extern void ManCompact();
     ManCompact();
 
-    DWORD tPreload = GetTickCount();
+    DWORD tPreload = static_cast<DWORD>(GetTickCount());
     _engine->TextBank()->Preload();
     LOG_DEBUG(Core, "LOAD: TextBank Preload {}ms", GetTickCount() - tPreload);
-    DWORD tOpt = GetTickCount();
+    DWORD tOpt = static_cast<DWORD>(GetTickCount());
     Shapes.OptimizeAll();
     LOG_DEBUG(Core, "LOAD: Shapes.OptimizeAll {}ms", GetTickCount() - tOpt);
 
@@ -722,7 +722,7 @@ bool World::InitVehicles(GameMode gameMode, ArcadeTemplate& t)
     {
         auto& camPos = _cameraOn->Position();
         LOG_DEBUG(Core, "LOAD: Terrain FillCache start pos=({},{},{})", camPos.X(), camPos.Y(), camPos.Z());
-        DWORD tFill = GetTickCount();
+        DWORD tFill = static_cast<DWORD>(GetTickCount());
         _scene.GetLandscape()->FillCache(*_cameraOn);
         float warmRadius = _scene.GetPreferredViewDistance() * 0.5f;
         _scene.GetLandscape()->CreateNearVBuffers(camPos.X(), camPos.Z(), warmRadius);

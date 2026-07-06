@@ -114,9 +114,9 @@ struct BankTraits<WeightInfo>
 	typedef const WeightInfoName &NameType;
 	static int CompareNames( const WeightInfoName &n1, const WeightInfoName &n2 )
 	{
-		int d = (char *)n1.shape.GetTypeRef()-(char *)n2.shape.GetTypeRef();
+		int d = static_cast<int>((char *)n1.shape.GetTypeRef()-(char *)n2.shape.GetTypeRef());
 		if (d) return d;
-		d = (char *)n1.skeleton.GetTypeRef()-(char *)n2.skeleton.GetTypeRef();
+		d = static_cast<int>((char *)n1.skeleton.GetTypeRef()-(char *)n2.skeleton.GetTypeRef());
 		return d;
 	}
 	typedef RefArray<WeightInfo> ContainerType;

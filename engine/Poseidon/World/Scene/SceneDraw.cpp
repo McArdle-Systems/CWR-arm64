@@ -97,7 +97,7 @@ static int CmpShapeObj(const SortObjectItem* p1, const SortObjectItem* p2)
 
     LODShape* s1 = o1->object->GetShape();
     LODShape* s2 = o2->object->GetShape();
-    sDif = (intptr_t)s2 - (intptr_t)s1;
+    sDif = static_cast<int>((intptr_t)s2 - (intptr_t)s1);
     // no invisible LODs here
     if (sDif)
     {

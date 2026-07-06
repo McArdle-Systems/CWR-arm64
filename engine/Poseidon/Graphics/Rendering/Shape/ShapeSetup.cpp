@@ -989,10 +989,10 @@ float Shape::LoadTagged(QIStream& f, bool reversed, int ver, bool geometryOnly, 
 
 bool LODShape::CheckLegalCreator() const
 {
-    int componumber = strtoul(PropertyValue("__ambient"), nullptr, 16);
-    int magicnumber = strtoul(PropertyValue("__diffuse"), nullptr, 16);
-    int unlockcode = strtoul(PropertyValue("__specular"), nullptr, 16);
-    int requestcode = strtoul(PropertyValue("__emissive"), nullptr, 16);
+    int componumber = static_cast<int>(strtoul(PropertyValue("__ambient"), nullptr, 16));
+    int magicnumber = static_cast<int>(strtoul(PropertyValue("__diffuse"), nullptr, 16));
+    int unlockcode = static_cast<int>(strtoul(PropertyValue("__specular"), nullptr, 16));
+    int requestcode = static_cast<int>(strtoul(PropertyValue("__emissive"), nullptr, 16));
 
     return (componumber != ~0 || magicnumber != ~0 || unlockcode != ~0 || requestcode != ~0);
 }

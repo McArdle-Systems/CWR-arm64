@@ -271,7 +271,7 @@ void DiagLogF(const char* format, ...)
 // Destroy file bank with given prefix
 void RemoveBank(const char* prefix)
 {
-    int prefixLen = strlen(prefix);
+    int prefixLen = static_cast<int>(strlen(prefix));
     for (int i = 0; i < GFileBanks.Size();)
     {
         QFBank& bank = GFileBanks[i];

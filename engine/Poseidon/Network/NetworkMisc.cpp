@@ -424,7 +424,7 @@ bool CheckSquadObject::DoProcessXML()
     }
 
     SquadParser parser(&_identity, _squad);
-    QIStream in(_squadXMLData, _squadXMLSize);
+    QIStream in(_squadXMLData, static_cast<int>(_squadXMLSize));
 
     if (!parser.Parse(in))
     {
@@ -1105,7 +1105,7 @@ bool NetworkManager::Init(RString ip, int port, bool startEnum)
         const char* ptr = strrchr(value, ':');
         if (ptr)
         {
-            address.ip = value.Substring(0, ptr - value);
+            address.ip = value.Substring(0, static_cast<int>(ptr - value));
             address.port = atoi(ptr + 1);
         }
         else

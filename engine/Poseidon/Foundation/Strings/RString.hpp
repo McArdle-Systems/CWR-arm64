@@ -87,7 +87,7 @@ class RString
         return _ref->Data();
     }
     __forceinline operator const char*() const { return Data(); }
-    int GetLength() const { return _ref ? strlen(_ref->Data()) : 0; }
+    int GetLength() const { return _ref ? static_cast<int>(strlen(_ref->Data())) : 0; }
     int GetRefCount() const { return _ref->RefCounter(); }
     char operator[](int i) const { return Data()[i]; }
 

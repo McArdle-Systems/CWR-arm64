@@ -241,7 +241,7 @@ class QOStream
 
     QOStream& operator<<(const char* buf)
     {
-        write(buf, strlen(buf));
+        write(buf, static_cast<int>(strlen(buf)));
         return *this;
     }
 };

@@ -166,7 +166,7 @@ void DisplaySingleMission::LoadDirectory()
     RString dir = RString("Missions\\") + _directory;
 
     const char* searchStr = "briefingName";
-    int searchLen = strlen(searchStr);
+    int searchLen = static_cast<int>(strlen(searchStr));
 
     _finddata_t info;
 
@@ -266,7 +266,7 @@ void DisplaySingleMission::LoadDirectory()
     if (h != -1)
     {
         const char* searchStr = "briefingName";
-        int searchLen = strlen(searchStr);
+        int searchLen = static_cast<int>(strlen(searchStr));
         do
         {
             if ((info.attrib & _A_SUBDIR) != 0 && info.name[0] != '.')
@@ -630,7 +630,7 @@ void DisplaySingleMission::OnButtonClicked(int idc)
                 const char* ext = strrchr(name, '\\');
                 if (ext)
                 {
-                    _directory = name.Substring(0, ext - (const char*)name + 1);
+                    _directory = name.Substring(0, static_cast<int>(ext - (const char*)name + 1));
                 }
                 else
                 {
@@ -1536,7 +1536,7 @@ void DisplayCampaignLoad::LoadCampaigns()
         {
             char name[256];
             snprintf(name, sizeof(name), "%s", (const char*)prefix + strlen(campaigns));
-            int n = strlen(name) - 1;
+            int n = static_cast<int>(strlen(name)) - 1;
             if (name[n] == '\\' || name[n] == '/')
             {
                 name[n] = 0;

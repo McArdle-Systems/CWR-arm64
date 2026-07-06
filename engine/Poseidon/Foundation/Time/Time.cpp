@@ -27,7 +27,7 @@ void UITime::operator+=(float diff)
     {
         result = INT_MAX;
     }
-    _time = result;
+    _time = static_cast<int>(result);
 }
 
 void UITime::operator-=(float diff)
@@ -44,7 +44,7 @@ void UITime::operator-=(float diff)
     {
         result = INT_MAX;
     }
-    _time = result;
+    _time = static_cast<int>(result);
 }
 
 float UITime::operator-(UITimeVal src) const
@@ -92,7 +92,7 @@ void Time::operator+=(float diff)
     {
         result = INT_MAX;
     }
-    _time = result;
+    _time = static_cast<int>(result);
 }
 
 void Time::operator-=(float diff)
@@ -109,7 +109,7 @@ void Time::operator-=(float diff)
     {
         result = INT_MAX;
     }
-    _time = result;
+    _time = static_cast<int>(result);
 }
 
 float Time::operator-(TimeVal src) const

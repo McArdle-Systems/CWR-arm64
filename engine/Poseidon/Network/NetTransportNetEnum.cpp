@@ -242,7 +242,8 @@ void NetSessionEnum::GetSessions(AutoArray<SessionInfo>& sessions)
         SessionInfo& dst = sessions[i];
         dst.guid = src.address;
         dst.name = src.name;
-        dst.lastTime = GetTickCount() - ((unsigned32)(getSystemTime() / 1000) - src.lastTime);
+        dst.lastTime =
+            static_cast<DWORD>(GetTickCount() - ((unsigned32)(getSystemTime() / 1000) - src.lastTime));
         dst.password = (src.password != 0);
         dst.actualVersion = src.actualVersion;
         dst.requiredVersion = src.requiredVersion;

@@ -45,7 +45,7 @@ public:
 	// return read string
 	RString ReadString()
 	{
-		int size = strlen(Data() + _pos) + 1;
+		int size = static_cast<int>(strlen(Data() + _pos)) + 1;
 		if (Size() < _pos + size) return "";
 		RString result = Data() + _pos;
 		_pos += size;

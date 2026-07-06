@@ -42,7 +42,7 @@ static int FileTime(const char* name)
     {
         return -1;
     }
-    return buf.st_mtime;
+    return static_cast<int>(buf.st_mtime);
 }
 
 static RString CanonicalBankEntryName(const char* name)
@@ -354,8 +354,8 @@ void FileBankManager::ScanDir(RString dir, RString rel)
             f.uncompressedSize = 0;
             f.startOffset = 0;
             f.name = CanonicalBankEntryName(rc);
-            f.length = buf.st_size;
-            f.time = buf.st_mtime;
+            f.length = static_cast<int32_t>(buf.st_size);
+            f.time = static_cast<int32_t>(buf.st_mtime);
             if (newestFile < f.time)
                 newestFile = f.time;
             files.Add(f);

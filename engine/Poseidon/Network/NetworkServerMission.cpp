@@ -1188,7 +1188,7 @@ void NetworkServer::SetGameState(NetworkGameState state)
             {
                 // Historical, probably Korean-release, match-results upload path.
                 // No built-in server address is kept here; --ranking supplies the active host.
-                RString ip = ranking.Substring(0, ptr - ranking);
+                RString ip = ranking.Substring(0, static_cast<int>(ptr - ranking));
                 int port = atoi(ptr + 1);
 
                 // create paramfile

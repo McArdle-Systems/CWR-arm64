@@ -85,8 +85,8 @@ WaveStreamOGG::WaveStreamOGG(const QIFStream& file)
         _format.wBitsPerSample = 16;
         _format.nChannels = static_cast<WORD>(info->channels);
         _format.nBlockAlign = static_cast<WORD>(info->channels * 2);
-        _format.nSamplesPerSec = info->rate;
-        _format.nAvgBytesPerSec = info->rate * 2 * info->channels;
+        _format.nSamplesPerSec = static_cast<DWORD>(info->rate);
+        _format.nAvgBytesPerSec = static_cast<DWORD>(info->rate * 2 * info->channels);
     }
 }
 
@@ -131,8 +131,8 @@ void WaveStreamOGG::GetFormat(WAVEFORMATEX& format) const
     format.wBitsPerSample = 16;
     format.nChannels = static_cast<WORD>(info->channels);
     format.nBlockAlign = static_cast<WORD>(info->channels * 2);
-    format.nSamplesPerSec = info->rate;
-    format.nAvgBytesPerSec = info->rate * 2 * info->channels;
+    format.nSamplesPerSec = static_cast<DWORD>(info->rate);
+    format.nAvgBytesPerSec = static_cast<DWORD>(info->rate * 2 * info->channels);
 }
 
 int WaveStreamOGG::GetData(void* data, int offset, int size) const
@@ -158,7 +158,7 @@ int WaveStreamOGG::GetData(void* data, int offset, int size) const
     while (size > 0)
     {
         int obs = _bitstream;
-        int rd = ov_read(&_vf, static_cast<char*>(data), size, 0, 2, 1, &_bitstream);
+        int rd = static_cast<int>(ov_read(&_vf, static_cast<char*>(data), size, 0, 2, 1, &_bitstream));
         if (_bitstream != obs)
         {
             LOG_DEBUG(Audio, "Stream {}", _bitstream);

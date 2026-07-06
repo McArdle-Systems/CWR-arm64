@@ -642,7 +642,7 @@ int CompareTextureR::operator()(const Poly* p0, const Poly* p1)
     }
     const Texture* t0 = p0->GetTexture();
     const Texture* t1 = p1->GetTexture();
-    return (char*)t0 - (char*)t1;
+    return static_cast<int>((char*)t0 - (char*)t1);
 }
 
 static int CompareTextureROffset(const StreamSortSegment* s1, const StreamSortSegment* s2, FaceArray* face)
@@ -1173,7 +1173,7 @@ static int CompareSecPoly(const SortSecPoly* s1, const SortSecPoly* s2)
     }
     // non-alpha: may sort by section
     // none alpha: sort by texture
-    int d = (const char*)t1 - (const char*)t2;
+    int d = static_cast<int>((const char*)t1 - (const char*)t2);
     if (d)
     {
         return d;
@@ -1192,7 +1192,7 @@ static int CompareSecPoly(const SortSecPoly* s1, const SortSecPoly* s2)
     }
     // sections may have equal properties, but need to be
     // distiguished anyway
-    d = (const char*)sec1 - (const char*)sec2;
+    d = static_cast<int>((const char*)sec1 - (const char*)sec2);
     if (d)
     {
         return d;

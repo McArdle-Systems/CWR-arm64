@@ -502,7 +502,7 @@ void QIHTTPStream::open(const char* url, const char* proxyServer)
                  "\r\n",
                  localHost);
     req[sizeof(req) - 1] = (char)0;
-    int msgLen = strlen(req);
+    int msgLen = static_cast<int>(strlen(req));
 #ifdef HTTP_SUPER_LOG
     LOG_DEBUG(Core, "HTTP request: {}", req);
 #endif
@@ -522,7 +522,7 @@ void QIHTTPStream::open(const char* url, const char* proxyServer)
             ::close(sock);
             return;
         }
-        sent = send(sock, ptr, msgLen, 0);
+        sent = static_cast<int>(send(sock, ptr, msgLen, 0));
         if (sent < 0 || httpInt)
         {
             LOG_DEBUG(Core, "HTTP: Error sending data (errno={})!", errno);
@@ -551,7 +551,7 @@ void QIHTTPStream::open(const char* url, const char* proxyServer)
             ptr = endPtr = nullptr;
             return;
         }
-        msgLen = recv(sock, ptr, left, 0); // receive at least the response header
+        msgLen = static_cast<int>(recv(sock, ptr, left, 0)); // receive at least the response header
         if (msgLen < 0)
         {
             LOG_DEBUG(Core, "HTTP: Error receiving response header ({})!", errno);
@@ -594,7 +594,7 @@ void QIHTTPStream::open(const char* url, const char* proxyServer)
     memcpy(beginPtr, endPtr, ptr - endPtr);
     ptr = beginPtr + (ptr - endPtr);
     endPtr = beginPtr + totalLen;
-    left = endPtr - ptr;
+    left = static_cast<int>(endPtr - ptr);
 
     // read the rest of data:
     errCounter = 12;
@@ -610,7 +610,7 @@ void QIHTTPStream::open(const char* url, const char* proxyServer)
             endPtr = ptr;
             break;
         }
-        msgLen = recv(sock, ptr, left, 0); // receive rest of the data
+        msgLen = static_cast<int>(recv(sock, ptr, left, 0)); // receive rest of the data
         if (msgLen < 0)
         {
             LOG_DEBUG(Core, "HTTP: Error receiving data ({})!", errno);
@@ -653,7 +653,7 @@ const unsigned char* QIHTTPStream::getData(unsigned& size)
 {
     if (!ok || !beginPtr)
         return nullptr;
-    size = endPtr - beginPtr;
+    size = static_cast<unsigned int>(endPtr - beginPtr);
 #ifdef HTTP_LOG
     LOG_DEBUG(Core, "HTTP-getData: {} bytes", size);
 #endif
@@ -777,7 +777,7 @@ bool DownloadFile(const char* url, const char* filename, const char* proxyServer
         ::close(file);
         return false;
     }
-    int sizeWritten = ::write(file, data, size);
+    int sizeWritten = static_cast<int>(::write(file, data, size));
     ::close(file);
     return (sizeWritten == size);
 }

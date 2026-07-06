@@ -118,7 +118,7 @@ void SerializeBinStream::operator<<(RString& data)
     else
     {
         // transfer zero terminated string
-        int len = strlen(data);
+        int len = static_cast<int>(strlen(data));
         _out->write(data, len + 1);
     }
 }
@@ -147,7 +147,7 @@ void SerializeBinStream::operator<<(RStringB& data)
     else
     {
         // transfer zero terminated string
-        int len = strlen(data);
+        int len = static_cast<int>(strlen(data));
         _out->write(data, len + 1);
     }
 }

@@ -214,14 +214,14 @@ void CWRFrameFunctions::ShowMessage(int timeMs, const char* msg, va_list argptr)
 
 TextInfo::TextInfo(int handle, Engine* engine, DWORD hideTime, Font* font, PackedColor color, float size, float x,
                    float y, const char* text)
-    : _hideTime(hideTime), _font(font), _color(color), _x(x), _y(y), _size(size), _text(text, strlen(text) + 1),
+    : _hideTime(hideTime), _font(font), _color(color), _x(x), _y(y), _size(size), _text(text, static_cast<int>(strlen(text) + 1)),
       _handle(handle)
 {
 }
 
 TextInfo::TextInfo(const TextInfo& src)
     : _hideTime(src._hideTime), _font(src._font), _color(src._color), _x(src._x), _y(src._y), _size(src._size),
-      _text(src._text, strlen(src._text) + 1), _handle(src._handle)
+      _text(src._text, static_cast<int>(strlen(src._text) + 1)), _handle(src._handle)
 {
 }
 TextInfo& TextInfo::operator=(const TextInfo& src)
@@ -231,7 +231,7 @@ TextInfo& TextInfo::operator=(const TextInfo& src)
     _size = src._size;
     if (src._text)
     {
-        _text.Realloc(src._text, strlen(src._text) + 1);
+        _text.Realloc(src._text, static_cast<int>(strlen(src._text) + 1));
     }
     else
     {

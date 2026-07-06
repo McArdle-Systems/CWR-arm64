@@ -123,7 +123,7 @@ void StatisticsByName::Report(QOStream& f, bool nonZeroOnly, bool sortByName)
         }
         char buf[1024];
         snprintf(buf, sizeof(buf), "%32s: %6d\r\n", _data[i].name, _data[i].count / _factor);
-        f.write(buf, strlen(buf));
+        f.write(buf, static_cast<int>(strlen(buf)));
     }
 }
 

@@ -651,7 +651,7 @@ bool Preproc::TryExpandMacro(QIStream& in, QOStream& out)
     }
     fnd->Block();
     const char* expand = fnd->GetValue();
-    QIStream local(expand, strlen(expand));
+    QIStream local(expand, static_cast<int>(strlen(expand)));
     LexItem it = item;
     char tt[128];
     strncpy(tt, text, 128);

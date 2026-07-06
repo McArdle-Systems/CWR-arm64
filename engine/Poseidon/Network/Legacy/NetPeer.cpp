@@ -255,7 +255,7 @@ THREAD_PROC_RETURN THREAD_PROC_MODE udpListen(void* param)
         if (error == 1)
         { // data are ready
             fromLen = sizeof(from);
-            error = recvfrom(peer->sock, data, MAX_IN_DATA - 1, 0, (struct sockaddr*)&from, &fromLen);
+            error = static_cast<int>(recvfrom(peer->sock, data, MAX_IN_DATA - 1, 0, (struct sockaddr*)&from, &fromLen));
             if (error != SOCKET_ERROR && error == (int)header.length && error >= MSG_HEADER_LEN && error <= MAX_IN_DATA)
             {
 #ifdef NET_BREAK
@@ -821,7 +821,7 @@ NetStatus NetPeerUDP::sendData(MsgHeader* hdr, struct sockaddr_in distant)
     int retryCounter = 12;
 retry:
 #endif
-    int result = sendto(sock, (const char*)hdr, hdr->length, 0, (const sockaddr*)&distant, sizeof(distant));
+    int result = static_cast<int>(sendto(sock, (const char*)hdr, hdr->length, 0, (const sockaddr*)&distant, sizeof(distant)));
     if (result == SOCKET_ERROR)
     {
 #ifdef _WIN32

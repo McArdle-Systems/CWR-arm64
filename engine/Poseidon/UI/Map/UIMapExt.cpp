@@ -1674,7 +1674,7 @@ static int CharRPos(const char* t, char c)
     {
         return 0;
     }
-    return cp - t;
+    return static_cast<int>(cp - t);
 }
 
 static RString ShortExpress(RString ex)

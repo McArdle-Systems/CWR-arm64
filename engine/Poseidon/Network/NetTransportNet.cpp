@@ -181,7 +181,7 @@ void decodeURLAddress(RString address, RString& ip, int& port)
         ip = address;
         return;
     }
-    ip = address.Substring(0, ptr - address);
+    ip = address.Substring(0, static_cast<int>(ptr - address));
     port = atoi(ptr + 1);
 }
 

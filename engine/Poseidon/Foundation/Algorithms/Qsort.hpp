@@ -128,7 +128,7 @@ void QSort(Type* base, int num, int (*comp)(const Type*, const Type*))
        prserved, locals aren't, so we preserve stuff on the stack */
 recurse:
 
-    size = (hi - lo) + 1; /* number of el's to sort */
+    size = static_cast<unsigned int>((hi - lo) + 1); /* number of el's to sort */
 
     /* below a certain size, it is faster to use a O(n^2) sorting method */
     if (size <= PoseidonBase::Algorithms::Detail::QSortCutoff)
@@ -288,7 +288,7 @@ void QSort(Type* base, int num, ContextType context, int (*comp)(const Type*, co
 
 recurse:
 
-    size = (hi - lo) + 1; /* number of el's to sort */
+    size = static_cast<unsigned int>((hi - lo) + 1); /* number of el's to sort */
 
     if (size <= PoseidonBase::Algorithms::Detail::QSortCutoff)
     {
@@ -392,7 +392,7 @@ void QSortWithContext(Type* base, int num, ContextType context, Compare comp)
 
 recurse:
 
-    size = (hi - lo) + 1; /* number of el's to sort */
+    size = static_cast<unsigned int>((hi - lo) + 1); /* number of el's to sort */
 
     if (size <= PoseidonBase::Algorithms::Detail::QSortCutoff)
     {

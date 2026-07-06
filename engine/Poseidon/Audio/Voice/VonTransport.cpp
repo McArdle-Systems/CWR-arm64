@@ -86,8 +86,8 @@ bool VoNTransport::sendTo(const sockaddr_in& peer, const void* data, int size)
 {
     if (_socket == INVALID_SOCKET)
         return false;
-    int ret = ::sendto(_socket, static_cast<const char*>(data), size, 0, reinterpret_cast<const sockaddr*>(&peer),
-                       sizeof(peer));
+    int ret = static_cast<int>(::sendto(_socket, static_cast<const char*>(data), size, 0,
+                                         reinterpret_cast<const sockaddr*>(&peer), sizeof(peer)));
     LOG_TRACE(Network, "VoN transport: sent {}B (ret={})", size, ret);
     return ret == size;
 }
@@ -97,7 +97,8 @@ int VoNTransport::recvFrom(void* buffer, int maxSize, sockaddr_in& from)
     if (_socket == INVALID_SOCKET)
         return -1;
     socklen_t fromLen = sizeof(from);
-    int ret = ::recvfrom(_socket, static_cast<char*>(buffer), maxSize, 0, reinterpret_cast<sockaddr*>(&from), &fromLen);
+    int ret = static_cast<int>(
+        ::recvfrom(_socket, static_cast<char*>(buffer), maxSize, 0, reinterpret_cast<sockaddr*>(&from), &fromLen));
     if (ret < 0)
     {
 #ifdef _WIN32

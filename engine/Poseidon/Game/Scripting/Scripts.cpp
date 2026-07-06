@@ -312,7 +312,8 @@ void Script::ProcessLine(const char* line)
             int i = _lines.Add();
             _lines[i].waitUntil = trueCond;
             _lines[i].suspendUntil = noSuspend;
-            _lines[i].condition = *field1 ? RString(field1, field1End - field1) : RString((const char*)trueCond);
+            _lines[i].condition =
+                *field1 ? RString(field1, static_cast<int>(field1End - field1)) : RString((const char*)trueCond);
             _lines[i].statement = field2;
         }
         break;

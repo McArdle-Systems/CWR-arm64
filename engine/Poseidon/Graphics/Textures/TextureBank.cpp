@@ -127,7 +127,7 @@ AnimatedTexture* AbstractTextBank::LoadAnimated(RStringB name)
     char postfix[256];
     AnimatedName(name, prefix, postfix);
     // try to find texture with the same prefix
-    int prefLen = strlen(prefix);
+    int prefLen = static_cast<int>(strlen(prefix));
     for (i = 0; i < _animatedTextures.Size(); i++)
     {
         AnimatedTexture* tex = _animatedTextures[i];
@@ -494,8 +494,8 @@ static bool PatternMatchQM6(const char* name, const char* pattern)
     }
     // full pattern does not match
     // check if there is trailing ??????
-    int patlen = strlen(pattern);
-    int namlen = strlen(name);
+    int patlen = static_cast<int>(strlen(pattern));
+    int namlen = static_cast<int>(strlen(name));
     // quick rejection test:
     // if ?????? should be matching, length of pattern must be length of name + 6
     if (namlen + 6 != patlen)

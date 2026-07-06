@@ -308,7 +308,7 @@ int CmpGuardedVehicles(const AITargetInfo* const* i1, const AITargetInfo* const*
     }
     else
     {
-        return info1->_idExact - info2->_idExact;
+        return static_cast<int>(info1->_idExact - info2->_idExact);
     }
 }
 

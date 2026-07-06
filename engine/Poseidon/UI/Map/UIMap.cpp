@@ -84,7 +84,7 @@ LSError AbstractOptionsUI::Serialize(ParamArchive& ar)
 
 static void AddChar(BString<32>& buffer, char c)
 {
-    int n = strlen(buffer);
+    int n = static_cast<int>(strlen(buffer));
     if (n < 32 - 1)
     {
         buffer[n] = c;
@@ -181,7 +181,7 @@ void GridFormat(BString<32>& buffer, RString format, int i)
 
 static void AddChar(char* buffer, char c)
 {
-    int n = strlen(buffer);
+    int n = static_cast<int>(strlen(buffer));
     buffer[n] = c;
     buffer[n + 1] = 0;
 }

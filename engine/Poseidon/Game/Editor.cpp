@@ -434,7 +434,7 @@ void CCALL EditCursor::SendEvent(int nMsgID, ...)
         return;
     }
 
-    result = send(_socketSend, (const char*)&event, sizeof(event), 0);
+    result = static_cast<int>(send(_socketSend, (const char*)&event, sizeof(event), 0));
     if (result == SOCKET_ERROR)
     {
         HandleError(true);
@@ -536,7 +536,7 @@ bool EditCursor::ReceiveMessage(SPosMessage& sMsg)
         return false;
     }
 
-    int len = recv(_socketSend, (char*)&sMsg, sizeof(sMsg), 0);
+    int len = static_cast<int>(recv(_socketSend, (char*)&sMsg, sizeof(sMsg), 0));
     if (len == 0)
     {
         return false;
@@ -563,7 +563,7 @@ bool EditCursor::ReceiveMessage(SPosMessage& sMsg)
             return false;
         }
 
-        int len2 = recv(_socketSend, (char*)&sMsg + len, sizeof(sMsg) - len, 0);
+        int len2 = static_cast<int>(recv(_socketSend, (char*)&sMsg + len, sizeof(sMsg) - len, 0));
         if (len2 == SOCKET_ERROR)
         {
             HandleError(false);
@@ -771,7 +771,7 @@ bool EditCursor::ProcessEvents()
                 else
                 {
                     char name[128];
-                    int len = ext - event.szName;
+                    int len = static_cast<int>(ext - event.szName);
                     strncpy(name, event.szName, len);
                     name[len] = 0;
                     land->RegisterObjectType(name);

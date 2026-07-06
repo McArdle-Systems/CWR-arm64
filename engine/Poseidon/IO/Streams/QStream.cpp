@@ -121,7 +121,7 @@ int FileSize(int handle)
 {
     struct stat buf;
     fstat(handle, &buf);
-    return buf.st_size;
+    return static_cast<int>(buf.st_size);
 }
 
 #endif
@@ -143,7 +143,7 @@ FileBufferLoaded::FileBufferLoaded(const char* name)
         if (size != -1)
         {
             _data.Init(size);
-            int sizeRead = ::read((int)(intptr_t)file, _data.Data(), size);
+            int sizeRead = static_cast<int>(::read((int)(intptr_t)file, _data.Data(), size));
             if (sizeRead != size)
             {
                 _data.Delete();
@@ -397,7 +397,7 @@ void QOFStream::close(const void* header, int headerSize)
     {
         if (header && headerSize > 0)
         {
-            int sizeWritten = ::write(file, header, headerSize);
+            int sizeWritten = static_cast<int>(::write(file, header, headerSize));
             if (sizeWritten != headerSize)
             {
                 _fail = true;
@@ -405,7 +405,7 @@ void QOFStream::close(const void* header, int headerSize)
             }
         }
         {
-            int sizeWritten = ::write(file, _buffer.Data(), _buffer.Size());
+            int sizeWritten = static_cast<int>(::write(file, _buffer.Data(), _buffer.Size()));
             if (sizeWritten != _buffer.Size())
             {
                 _fail = true;

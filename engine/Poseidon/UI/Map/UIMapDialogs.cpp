@@ -1094,30 +1094,30 @@ void DisplayDebriefing::CreateDebriefing()
             static const char* prefixEast = "OBJ_EAST_";
             static const char* prefixGuerrila = "OBJ_GUER_";
             static const char* prefixCivilian = "OBJ_CIVIL_";
-            if (strnicmp(name, prefix, strlen(prefix)) == 0)
+            if (strnicmp(name, prefix, static_cast<int>(strlen(prefix))) == 0)
             {
-                if (strnicmp(name, prefixWest, strlen(prefixWest)) == 0)
+                if (strnicmp(name, prefixWest, static_cast<int>(strlen(prefixWest))) == 0)
                 {
                     if (side != TWest)
                     {
                         continue;
                     }
                 }
-                else if (strnicmp(name, prefixEast, strlen(prefixEast)) == 0)
+                else if (strnicmp(name, prefixEast, static_cast<int>(strlen(prefixEast))) == 0)
                 {
                     if (side != TEast)
                     {
                         continue;
                     }
                 }
-                if (strnicmp(name, prefixGuerrila, strlen(prefixGuerrila)) == 0)
+                if (strnicmp(name, prefixGuerrila, static_cast<int>(strlen(prefixGuerrila))) == 0)
                 {
                     if (side != TGuerrila)
                     {
                         continue;
                     }
                 }
-                if (strnicmp(name, prefixCivilian, strlen(prefixCivilian)) == 0)
+                if (strnicmp(name, prefixCivilian, static_cast<int>(strlen(prefixCivilian))) == 0)
                 {
                     if (side != TCivilian)
                     {

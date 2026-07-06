@@ -531,7 +531,7 @@ bool QFBank::Load()
                     {
                         LoadFileInfo(info, headersDecoded);
 
-                        info.startOffset = startOffset;
+                        info.startOffset = static_cast<int>(startOffset);
                         startOffset += info.length;
                         if (info.name.GetLength() <= 0)
                         {
@@ -550,7 +550,7 @@ bool QFBank::Load()
             {
                 LoadFileInfo(info, (HANDLE)(intptr_t)_handle);
 
-                info.startOffset = startOffset;
+                info.startOffset = static_cast<int>(startOffset);
                 startOffset += info.length;
                 if (info.name.GetLength() <= 0)
                 {
@@ -577,7 +577,7 @@ bool QFBank::Load()
         }
     }
 
-    int headerSize = SetFilePointer(_handle, 0, nullptr, FILE_CURRENT);
+    int headerSize = static_cast<int>(SetFilePointer(_handle, 0, nullptr, FILE_CURRENT));
     BEG_SERIALIZE
     // filemapping uses offset from end of header; direct access uses file offset
     if (_files.NItems() > 0)
@@ -597,7 +597,7 @@ bool QFBank::Load()
     }
     startOffset += headerSize;
     // check integrity - try to seek end of file
-    DWORD checkEof = SetFilePointer(_handle, startOffset, nullptr, FILE_BEGIN);
+    DWORD checkEof = static_cast<DWORD>(SetFilePointer(_handle, startOffset, nullptr, FILE_BEGIN));
     if ((int)checkEof != startOffset)
     {
         Foundation::ErrorMessage("Data file too short '%s'.", (const char*)_openName);
@@ -730,7 +730,7 @@ void QFBank::ScanPatchFiles(RString prefix, RString subdir)
 #else
 
     unixPath((char*)(const char*)wildname);
-    int len = strlen(wildname);
+    int len = static_cast<int>(strlen(wildname));
     if (len > 0 && wildname[len - 1] == UNIX_DIR)
         wildname[--len] = (char)0;
     DIR* dir = opendir(wildname);
@@ -820,7 +820,7 @@ void QFBank::Read(char* buf, long size, const char* name) const
     EXCLUSIVE(); // seek to wanted position
     if (_pos != _wantPos)
     {
-        DWORD nPos = SetFilePointer(_handle, _wantPos, nullptr, FILE_BEGIN);
+        DWORD nPos = static_cast<DWORD>(SetFilePointer(_handle, _wantPos, nullptr, FILE_BEGIN));
         if ((int)nPos != _wantPos)
         {
             Foundation::ErrorMessage("Read: Data file seek error (%s: %d,%d).", name, nPos, _wantPos);

@@ -137,7 +137,7 @@ static RString PathFirstFolder(const char* path)
     {
         return "";
     }
-    return RString(path, next - path);
+    return RString(path, static_cast<int>(next - path));
 }
 
 static RString ConvertContextToCfgPath(RString path)

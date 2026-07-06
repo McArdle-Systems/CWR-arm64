@@ -140,7 +140,7 @@ class BinaryReader
         }
         else
         {
-            stream_.read(result.data(), sizeInBytes);
+            stream_.read(result.data(), static_cast<int>(sizeInBytes));
             if (stream_.fail())
                 throw std::runtime_error("Failed to read array data");
         }

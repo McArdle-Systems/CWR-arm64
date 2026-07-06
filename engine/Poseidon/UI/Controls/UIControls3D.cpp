@@ -279,7 +279,7 @@ void C3DStatic::FormatText()
             {
                 // Explicit line break — start the next line after the newline,
                 // regardless of width (width-wrap still applies within a line).
-                _lines.Add(p - (const char*)_text);
+                _lines.Add(static_cast<int>(p - (const char*)_text));
                 break;
             }
             if (ISSPACE(c))
@@ -303,7 +303,7 @@ void C3DStatic::FormatText()
                 {
                     p = q;
                 }
-                _lines.Add(p - (const char*)_text);
+                _lines.Add(static_cast<int>(p - (const char*)_text));
                 break;
             }
         }
@@ -762,7 +762,7 @@ int C3DEdit::XToPos(RString text, float x) const
         return 0;
     }
 
-    int n = strlen(text);
+    int n = static_cast<int>(strlen(text));
     for (int i = 0; i < n;)
     {
         int j = i;
@@ -963,7 +963,7 @@ void C3DEdit::FormatText()
             {
                 // Explicit line break — start the next line after the newline,
                 // regardless of width (width-wrap still applies within a line).
-                _lines.Add(p - (const char*)_text);
+                _lines.Add(static_cast<int>(p - (const char*)_text));
                 break;
             }
             if (ISSPACE(c))
@@ -987,7 +987,7 @@ void C3DEdit::FormatText()
                 {
                     p = q;
                 }
-                _lines.Add(p - (const char*)_text);
+                _lines.Add(static_cast<int>(p - (const char*)_text));
                 break;
             }
         }

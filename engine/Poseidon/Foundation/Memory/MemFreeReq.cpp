@@ -71,7 +71,7 @@ size_t MemoryFreeOnDemandList::FreeAll()
     int freedTotal = 0;
     for (IMemoryFreeOnDemand* walk = Start(); NotEnd(walk); walk = Advance(walk))
     {
-        int freed = walk->FreeAll();
+        int freed = static_cast<int>(walk->FreeAll());
         freedTotal += freed;
     }
 

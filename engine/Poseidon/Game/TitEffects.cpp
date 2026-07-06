@@ -238,11 +238,11 @@ void SplitTitleLines(RString text, AutoArray<RString>& out)
         const char* ptr = strstr(start, "\\n");
         while (ptr)
         {
-            out.Add(text.Substring(start - text, ptr - text));
+            out.Add(text.Substring(static_cast<int>(start - text), static_cast<int>(ptr - text)));
             start = ptr + 2;
             ptr = strstr(start, "\\n");
         }
-        out.Add(text.Substring(start - text, INT_MAX));
+        out.Add(text.Substring(static_cast<int>(start - text), INT_MAX));
     }
 }
 

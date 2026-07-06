@@ -290,7 +290,7 @@ struct SDLRumble
     {
         weaponBegMag = fabsf(beg);
         weaponEndMag = fabsf(end);
-        weaponStart = SDL_GetTicks();
+        weaponStart = static_cast<uint32_t>(SDL_GetTicks());
         weaponEnd = weaponStart + (uint32_t)(duration * 1000.f);
     }
 
@@ -299,7 +299,7 @@ struct SDLRumble
         if (!g)
             return;
         float weaponMag = 0;
-        uint32_t now = SDL_GetTicks();
+        uint32_t now = static_cast<uint32_t>(SDL_GetTicks());
         if (now < weaponEnd)
         {
             float t = (float)(now - weaponStart) / (float)(weaponEnd - weaponStart);

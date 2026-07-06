@@ -339,7 +339,7 @@ const FaceSelection& NamedSelection::FaceOffsets(Shape* shape) const
         for (int i = 0; i < _faceSel.Size(); i++)
         {
             const Poly& poly = shape->FaceIndexed(_faces[i]);
-            Offset f((const char*)&poly - (const char*)&shape->FaceIndexed(0));
+            Offset f(static_cast<int>((const char*)&poly - (const char*)&shape->FaceIndexed(0)));
             _faceSel[i] = f;
         }
     }

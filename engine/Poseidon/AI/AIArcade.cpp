@@ -1022,7 +1022,7 @@ static void ArcadeScripted(AIGroupContext* context)
     if (space)
     {
         nameArgs = space + 1;
-        nameScript = nameScript.Substring(0, space - nameScript);
+        nameScript = nameScript.Substring(0, static_cast<int>(space - nameScript));
     }
 
     GameArrayType arguments;

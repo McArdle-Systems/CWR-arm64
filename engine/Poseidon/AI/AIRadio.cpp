@@ -85,7 +85,7 @@ PackedBoolArray GetUnitsList(AIGroup* grp, OLinkArray<AIUnit>& units)
 
 static void Spell(RadioSentence& sentence, const char* buffer, float pauseAfter)
 {
-    int i, n = strlen(buffer);
+    int i, n = static_cast<int>(strlen(buffer));
     for (i = 0; i < n; i++)
     {
         float pause = (i == n - 1) ? pauseAfter : PAUSE_IN_NUMBER;

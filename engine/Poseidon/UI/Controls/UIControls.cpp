@@ -281,7 +281,7 @@ void CStatic::FormatText()
     while (*p != 0)
     {
         // begin of the line
-        _lines.Add(p - (const char*)_text);
+        _lines.Add(static_cast<int>(p - (const char*)_text));
         const char* word = p;
         int n = 0;
         float width = 0;
@@ -349,7 +349,7 @@ RString CStatic::GetLine(int i) const
     }
 
     int from = _lines[i];
-    int to = i + 1 < NLines() ? _lines[i + 1] : strlen(_text);
+    int to = i + 1 < NLines() ? _lines[i + 1] : static_cast<int>(strlen(_text));
     return _text.Substring(from, to);
 }
 
@@ -1160,7 +1160,7 @@ void CEditContainer::SetText(RString text)
 
     FormatText();
 
-    int n = strlen(text);
+    int n = static_cast<int>(strlen(text));
     saturateMin(_blockBegin, n);
     saturateMin(_blockEnd, n);
     saturateMin(_firstVisible, n);
@@ -1169,7 +1169,7 @@ void CEditContainer::SetText(RString text)
 
 void CEditContainer::SetCaretPos(int pos)
 {
-    int n = strlen(GetText());
+    int n = static_cast<int>(strlen(GetText()));
     saturate(pos, 0, n);
     _blockBegin = pos;
     _blockEnd = pos;
@@ -1200,7 +1200,7 @@ inline bool IsKey(int nVirtKey)
 
 bool CEditContainer::DoKeyDown(unsigned nChar, unsigned nRepCnt, unsigned nFlags)
 {
-    int n = strlen(GetText());
+    int n = static_cast<int>(strlen(GetText()));
     PoseidonAssert(_blockBegin >= 0);
     PoseidonAssert(_blockBegin <= n);
     PoseidonAssert(_blockEnd >= 0);
@@ -1456,7 +1456,7 @@ bool CEditContainer::DoKeyDown(unsigned nChar, unsigned nRepCnt, unsigned nFlags
 
 bool CEditContainer::DoChar(unsigned nChar, unsigned nRepCnt, unsigned nFlags)
 {
-    int n = strlen(GetText());
+    int n = static_cast<int>(strlen(GetText()));
     const int langID = _font ? _font->GetLangID() : Poseidon::Foundation::GetLangID();
     if (CountTextElements(GetText(), langID) >= _maxChars)
     {
@@ -1505,7 +1505,7 @@ bool CEditContainer::DoChar(unsigned nChar, unsigned nRepCnt, unsigned nFlags)
 
 bool CEditContainer::DoIMEChar(unsigned nChar, unsigned nRepCnt, unsigned nFlags)
 {
-    int n = strlen(GetText());
+    int n = static_cast<int>(strlen(GetText()));
     if (n + 2 > _maxChars)
     {
         return true;
@@ -1553,7 +1553,7 @@ bool CEditContainer::DoIMEChar(unsigned nChar, unsigned nRepCnt, unsigned nFlags
 
 bool CEditContainer::DoIMEComposition(unsigned nChar, unsigned nFlags)
 {
-    int n = strlen(GetText());
+    int n = static_cast<int>(strlen(GetText()));
     if (nChar != 0 && n + 2 > _maxChars)
     {
         return true;
@@ -1764,7 +1764,7 @@ void CEditContainer::BlockPaste()
             if (*p == '\n' || *p == '\r' || *p == '\t')
                 *p = ' ';
         }
-        int n = strlen(clipboard);
+        int n = static_cast<int>(strlen(clipboard));
         if (n + _text.GetLength() <= _maxChars)
         {
             RString text =
@@ -1857,7 +1857,7 @@ int CEdit::XToPos(RString text, float x) const
     // whole `_text`: callers pass GetLine() or a Substring shorter than _text, so
     // bounding the loop by strlen(_text) walks CopyTextElement past the buffer —
     // an out-of-bounds read (crash) or a stall at the NUL (freeze).
-    int n = strlen(text);
+    int n = static_cast<int>(strlen(text));
     for (int i = 0; i < n;)
     {
         int j = i;
@@ -2264,7 +2264,7 @@ void CEdit::FormatText()
                 {
                     p = q;
                 }
-                _lines.Add(p - (const char*)_text);
+                _lines.Add(static_cast<int>(p - (const char*)_text));
                 break;
             }
         }

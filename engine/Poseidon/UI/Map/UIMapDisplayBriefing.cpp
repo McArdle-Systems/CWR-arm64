@@ -435,30 +435,30 @@ void DisplayMap::UpdatePlan()
             static const char* prefixEast = "OBJ_EAST_";
             static const char* prefixGuerrila = "OBJ_GUER_";
             static const char* prefixCivilian = "OBJ_CIVIL_";
-            if (strnicmp(name, prefix, strlen(prefix)) == 0)
+            if (strnicmp(name, prefix, static_cast<int>(strlen(prefix))) == 0)
             {
-                if (strnicmp(name, prefixWest, strlen(prefixWest)) == 0)
+                if (strnicmp(name, prefixWest, static_cast<int>(strlen(prefixWest))) == 0)
                 {
                     if (side != TWest)
                     {
                         continue;
                     }
                 }
-                else if (strnicmp(name, prefixEast, strlen(prefixEast)) == 0)
+                else if (strnicmp(name, prefixEast, static_cast<int>(strlen(prefixEast))) == 0)
                 {
                     if (side != TEast)
                     {
                         continue;
                     }
                 }
-                if (strnicmp(name, prefixGuerrila, strlen(prefixGuerrila)) == 0)
+                if (strnicmp(name, prefixGuerrila, static_cast<int>(strlen(prefixGuerrila))) == 0)
                 {
                     if (side != TGuerrila)
                     {
                         continue;
                     }
                 }
-                if (strnicmp(name, prefixCivilian, strlen(prefixCivilian)) == 0)
+                if (strnicmp(name, prefixCivilian, static_cast<int>(strlen(prefixCivilian))) == 0)
                 {
                     if (side != TCivilian)
                     {
@@ -979,7 +979,7 @@ void DisplayMap::OnHTMLLink(int idc, RString link)
 {
     const char* ptr = link;
     const char* name = "marker:";
-    int n = strlen(name);
+    int n = static_cast<int>(strlen(name));
     if (strnicmp(ptr, name, n) == 0)
     {
         ptr += n;
@@ -1031,7 +1031,7 @@ void DisplayMap::OnHTMLLink(int idc, RString link)
     if (_selectWeapons)
     {
         name = "slot:";
-        n = strlen(name);
+        n = static_cast<int>(strlen(name));
         if (strnicmp(ptr, name, n) == 0)
         {
             ptr += n;
@@ -1060,7 +1060,7 @@ void DisplayMap::OnHTMLLink(int idc, RString link)
     }
 
     name = "gear:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(ptr, name, n) == 0)
     {
         ptr += n;
@@ -1084,7 +1084,7 @@ void DisplayMap::OnHTMLLink(int idc, RString link)
     }
 
     name = "weapon:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(ptr, name, n) == 0)
     {
         ptr += n;
@@ -1176,7 +1176,7 @@ void DisplayMap::OnHTMLLink(int idc, RString link)
     }
 
     name = "magazine:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(ptr, name, n) == 0)
     {
         ptr += n;
@@ -1230,7 +1230,7 @@ void DisplayMap::OnHTMLLink(int idc, RString link)
     }
 
     name = "fill1:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(ptr, name, n) == 0)
     {
         ptr += n;
@@ -1281,7 +1281,7 @@ void DisplayMap::OnHTMLLink(int idc, RString link)
     }
 
     name = "fill2:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(ptr, name, n) == 0)
     {
         ptr += n;
@@ -1331,7 +1331,7 @@ void DisplayMap::OnHTMLLink(int idc, RString link)
     }
 
     name = "fill3:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(ptr, name, n) == 0)
     {
         ptr += n;
@@ -1381,7 +1381,7 @@ void DisplayMap::OnHTMLLink(int idc, RString link)
     }
 
     name = "dropweapon:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(ptr, name, n) == 0)
     {
         ptr += n;
@@ -1420,7 +1420,7 @@ void DisplayMap::OnHTMLLink(int idc, RString link)
     }
 
     name = "dropmagazine:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(ptr, name, n) == 0)
     {
         ptr += n;
@@ -1462,49 +1462,49 @@ void DisplayMap::OnHTMLLink(int idc, RString link)
 static RString GetTooltip(UnitWeaponsInfo& info, RString href)
 {
     const char* name = "fill1:";
-    int n = strlen(name);
+    int n = static_cast<int>(strlen(name));
     if (strnicmp(href, name, n) == 0)
     {
         return LocalizeString(IDS_TOOLTIP_FILL_ALL_SLOTS);
     }
 
     name = "fill2:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(href, name, n) == 0)
     {
         return LocalizeString(IDS_TOOLTIP_FILL_ALL_SLOTS);
     }
 
     name = "fill3:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(href, name, n) == 0)
     {
         return LocalizeString(IDS_TOOLTIP_FILL_ALL_SLOTS);
     }
 
     name = "#eq_";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(href, name, n) == 0)
     {
         return LocalizeString(IDS_TOOLTIP_INFORMATION);
     }
 
     name = "dropweapon:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(href, name, n) == 0)
     {
         return LocalizeString(IDS_TOOLTIP_DROP);
     }
 
     name = "dropmagazine:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(href, name, n) == 0)
     {
         return LocalizeString(IDS_TOOLTIP_DROP);
     }
 
     name = "slot:";
-    n = strlen(name);
+    n = static_cast<int>(strlen(name));
     if (strnicmp(href, name, n) == 0)
     {
         const char* ptr = href;

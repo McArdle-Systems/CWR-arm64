@@ -10,7 +10,7 @@ namespace Poseidon::Foundation
 {
 FastAlloc::FastAlloc(size_t n, const char* name, int alignOffset)
     : _name(name), _alignOffset(alignOffset),
-      esize(n + sizeof(void*) < sizeof(Link) ? sizeof(Link) : n + sizeof(void*)), // Chunk pointer header
+      esize(static_cast<unsigned int>(n + sizeof(void*) < sizeof(Link) ? sizeof(Link) : n + sizeof(void*))), // Chunk pointer header
       allocated(1)
 {
     //  if structure is smaller than 32 it is very likely

@@ -81,7 +81,7 @@ struct BankTraits<AnimationRT>
     {
         int d = strcmpi(n1.name, n2.name);
         if (d) return d;
-        d = (char*)n1.skeleton.GetRef() - (char*)n2.skeleton.GetRef();
+        d = static_cast<int>((char*)n1.skeleton.GetRef() - (char*)n2.skeleton.GetRef());
         return d;
     }
     typedef RefArray<AnimationRT> ContainerType;

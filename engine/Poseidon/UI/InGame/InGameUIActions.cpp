@@ -476,7 +476,7 @@ void UIAction::Process(AIUnit* unit) const
                 {
                     return;
                 }
-                int separatorPos = separator - param3;
+                int separatorPos = static_cast<int>(separator - param3);
                 RString weapon = param3.Substring(0, separatorPos);
                 RString muzzle = param3.Substring(separatorPos + 1, INT_MAX);
                 int iSlot = -1;

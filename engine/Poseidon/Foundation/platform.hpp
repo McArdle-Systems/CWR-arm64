@@ -123,8 +123,10 @@ extern int CCALL strnicmp(const char* a, const char* b, int n);
 #define FILE_END SEEK_END
 #define GetCurrentDirectory(len, buf) getcwd(buf, len)
 #define SetCurrentDirectory chdir
-#define ReadFile(file, buf, len, rd, ovl) (*(rd) = ::read((int)(intptr_t)(file), buf, len), *(rd) != 0xffffffff)
-#define WriteFile(file, buf, len, wr, ovl) (*(wr) = ::write((int)(intptr_t)(file), buf, len), *(wr) != 0xffffffff)
+#define ReadFile(file, buf, len, rd, ovl) \
+    (*(rd) = static_cast<DWORD>(::read((int)(intptr_t)(file), buf, len)), *(rd) != 0xffffffff)
+#define WriteFile(file, buf, len, wr, ovl) \
+    (*(wr) = static_cast<DWORD>(::write((int)(intptr_t)(file), buf, len)), *(wr) != 0xffffffff)
 #define SetFilePointer(file, pos, x, mode) lseek((int)(intptr_t)(file), pos, mode)
 #define CloseHandle(handle) ::close((int)(intptr_t)(handle))
 #define CreateDirectory(dir, d) createDirectory(dir)

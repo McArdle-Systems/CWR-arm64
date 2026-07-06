@@ -192,7 +192,7 @@ static RString ExtractWord(RString& line)
         line = RString();
         return word;
     }
-    RString word = line.Substring(0, endWord - line.Data());
+    RString word = line.Substring(0, static_cast<int>(endWord - line.Data()));
     line = endWord + 1;
     return word;
 }
@@ -276,7 +276,7 @@ void NetworkServer::DebugAsk(RString str, int from, bool fullAccess)
 
     const char* beg = str;
     const char* end = strchr(beg, ' ');
-    int len = end ? end - beg : strlen(beg);
+    int len = end ? static_cast<int>(end - beg) : static_cast<int>(strlen(beg));
 
     RString strCommand(beg, len);
     DebugType command = GetEnumValue<DebugType>((const char*)strCommand);
@@ -952,7 +952,7 @@ void NetworkServer::SimulateDS()
             msg.type = NCMTMonitorAnswer;
             float invInterval = 1.0 / (_monitorInterval + 0.001f * (tickCount - _monitorNext));
             float fps = _monitorFrames * invInterval;
-            int memory = MemoryUsed();
+            int memory = static_cast<int>(MemoryUsed());
             float in = _monitorIn * invInterval;
             float out = _monitorOut * invInterval;
             msg.content.Write(&fps, sizeof(fps));

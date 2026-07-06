@@ -95,7 +95,7 @@ void FormatCurrency(char* buffer, float res)
         {
             char temp[128];
             snprintf(buffer, sizeof(buffer), "%.0f", res);
-            int digits = strlen(buffer);
+            int digits = static_cast<int>(strlen(buffer));
             int i = 0;
             int j = 0;
             temp[i++] = buffer[j++];
@@ -976,7 +976,7 @@ RString CreateSingleMissionBank(RString filename, bool uniquePrefix)
 
     // remove bank
     const char* prefix = "missions\\__cur_sp.";
-    int prefixLen = strlen(prefix);
+    int prefixLen = static_cast<int>(strlen(prefix));
     for (int i = 0; i < GFileBanks.Size();)
     {
         QFBank& bank = GFileBanks[i];

@@ -218,7 +218,7 @@ static int FileSize(const char* name)
     {
         return INT_MAX;
     }
-    return st.st_size;
+    return static_cast<int>(st.st_size);
 }
 
 static NetworkObject* ResolveClientNetworkObject(void* context, const NetworkId& id)
@@ -707,7 +707,7 @@ void NetworkClient::OnMessage(int from, NetworkMessage* msg, NetworkMessageType 
                 const char* ext = strrchr(ptr, '.');
                 NET_ERROR(ext);
                 NET_ERROR(stricmp(ext, ".pbo") == 0);
-                RString path = transfer.path.Substring(0, ext - ptr);
+                RString path = transfer.path.Substring(0, static_cast<int>(ext - ptr));
                 CreateMPMissionBank(path, _missionHeader.island);
 
                 NET_ERROR(!_missionFileValid);

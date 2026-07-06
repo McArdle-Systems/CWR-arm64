@@ -101,7 +101,7 @@ static RString GetTypedWord(RString text, int caret)
         begWord--;
     }
     // begWord to beg is word part
-    return RString(begWord, endWord - begWord);
+    return RString(begWord, static_cast<int>(endWord - begWord));
 }
 
 static int CountMatch(const char* s1, const char* s2)

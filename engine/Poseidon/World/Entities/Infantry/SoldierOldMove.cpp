@@ -67,7 +67,7 @@ void Man::ProcessMoveFunction(ActionContextBase* context)
             {
                 break;
             };
-            int separatorPos = separator - cd->param3;
+            int separatorPos = static_cast<int>(separator - cd->param3);
             RString weapon = cd->param3.Substring(0, separatorPos);
             RString muzzle = cd->param3.Substring(separatorPos + 1, INT_MAX);
             int iSlot = -1;
