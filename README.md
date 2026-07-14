@@ -1,5 +1,9 @@
 [![Build](https://github.com/McArdle-Systems/CWR-arm64/actions/workflows/build.yml/badge.svg)](https://github.com/McArdle-Systems/CWR-arm64/actions/workflows/build.yml)
 
+> [!IMPORTANT]
+> This repository is archived. Development continues in
+> **[McArdle-Systems/CWR-CE](https://github.com/McArdle-Systems/CWR-CE)**.
+
 # CWR-arm64 — a community fork with Apple Silicon, Metal, and iOS support
 
 > **This is a modified, unofficial community fork**, not the original program
